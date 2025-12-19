@@ -2,7 +2,7 @@ import React from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
-import { ThemeProvider } from '../contexts/ThemeContext';
+
 
 function AppLayoutContent({ children }) {
   const { auth } = usePage().props;
@@ -28,12 +28,10 @@ function AppLayoutContent({ children }) {
 export default function AppLayout({ children }) {
   const { props } = usePage();
   const currentLanguage = props.currentLanguage || 'en';
-  
+
   return (
-    <ThemeProvider>
-      <AppLayoutContent>
-        {children}
-      </AppLayoutContent>
-    </ThemeProvider>
+    <AppLayoutContent>
+      {children}
+    </AppLayoutContent>
   );
 }

@@ -44,7 +44,7 @@
         @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
         @inertiaHead
     </head>
-    <body class="font-sans antialiased" data-language="{{ request()->cookie('language', 'en') }}" data-dark="{{ ($appearance ?? 'system') == 'dark' ? '1' : '0' }}">
+    <body class="font-sans antialiased" data-language="{{ request()->input('language', request()->cookie('language', 'en')) }}" data-dark="{{ ($appearance ?? 'system') == 'dark' ? '1' : '0' }}">
         @inertia
     </body>
 </html>

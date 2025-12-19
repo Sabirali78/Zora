@@ -61,7 +61,7 @@ export default function News() {
             {/* Main featured top story (left side) */}
             <div className="md:w-1/2">
                 <Link 
-                    href={`/articles/${topStories[0].id}?language=${currentLanguage}`} 
+                    href={`/articles/${topStories[0].slug ?? topStories[0].id}?language=${currentLanguage}`} 
                     className="block bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden h-full"
                 >
                     {getImageUrl(topStories[0]) && (
@@ -90,7 +90,7 @@ export default function News() {
                 {topStories.slice(1, 6).map((story, index) => (
                     <Link 
                         key={story.id}
-                        href={`/articles/${story.id}?language=${currentLanguage}`} 
+                        href={`/articles/${story.slug ?? story.id}?language=${currentLanguage}`} 
                         className="block bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
                     >
                         {getImageUrl(story) && (
@@ -123,7 +123,7 @@ export default function News() {
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {articles.map(article => (
-                                <Link key={article.id} href={`/articles/${article.id}?language=${currentLanguage}`} className="block bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow duration-300 overflow-hidden">
+                                <Link key={article.id} href={`/articles/${article.slug ?? article.id}?language=${currentLanguage}`} className="block bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow duration-300 overflow-hidden">
                                     {getImageUrl(article) && (
                                         <img
                                             src={getImageUrl(article)}

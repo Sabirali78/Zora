@@ -113,11 +113,19 @@ const navLinks = useMemo(() => [
     setLanguageDropdownOpen(false);
     // Call backend API to set language in session/cookie
     try {
+      // include credentials so the browser accepts Set-Cookie from the server
       await fetch('/set-language', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+        },
         body: JSON.stringify({ language: newLanguage })
       });
+      // Also set cookie client-side as a fallback (path-root, 1 year)
+      document.cookie = `language=${newLanguage};path=/;max-age=${60*60*24*365}`;
     } catch (e) {}
     // Redirect to current URL with ?language=xx param
     const url = new URL(window.location.href);
@@ -398,8 +406,8 @@ const navLinks = useMemo(() => [
                   )}
                 </div>
               ) : (
-                <button
-                  onClick={() => router.get('/login')}
+                <Link
+                  href={`/login?language=${currentLanguage}`}
                   className={`flex items-center p-2 rounded-lg transition-colors ${
                     darkMode
                       ? 'hover:bg-gray-800 text-gray-300'
@@ -408,7 +416,7 @@ const navLinks = useMemo(() => [
                 >
                   <LogIn className="h-5 w-5" />
                   <span className="ml-1 hidden sm:inline">{t('login')}</span>
-                </button>
+                </Link>
               )}
 
               {/* Mobile Menu Button */}
@@ -541,11 +549,9 @@ const navLinks = useMemo(() => [
                     </div>
                   ) : (
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <button
-                        onClick={() => {
-                          router.get('/login');
-                          setMobileMenuOpen(false);
-                        }}
+                      <Link
+                        href={`/login?language=${currentLanguage}`}
+                        onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center w-full px-3 py-2 text-base text-left ${
                           darkMode
                             ? 'text-gray-300 hover:text-white hover:bg-gray-700'
@@ -554,7 +560,7 @@ const navLinks = useMemo(() => [
                       >
                         <LogIn className="mr-2 h-4 w-4" />
                         {t('login')}
-                      </button>
+                      </Link>
                     </div>
                   )}
                 </div>

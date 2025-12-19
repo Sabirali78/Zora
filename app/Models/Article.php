@@ -73,4 +73,10 @@ class Article extends Model
                $this->hasLanguageContent('en') && 
                $this->hasLanguageContent('ur');
     }
+
+    // Use `slug` for route model binding so URLs like /articles/my-slug work.
+    public function getRouteKeyName()
+    {
+        return 'slug';
+    }
 }

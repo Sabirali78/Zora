@@ -83,7 +83,7 @@ export default function Articles() {
                     <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-6'}>
                         {filteredArticles.map(article => (
                             <div key={article.id} className='bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow duration-300 overflow-hidden'>
-                                <Link href={`/articles/${article.id}?language=${currentLanguage}`} className="block">
+                                <Link href={`/articles/${article.slug ?? article.id}?language=${currentLanguage}`} className="block">
                                     {getArticleImageUrl(article) && (
                                         <div className={`relative overflow-hidden ${viewMode === 'grid' ? 'h-48' : 'h-32'}`}>
                                             <img

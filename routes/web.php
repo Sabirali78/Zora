@@ -12,9 +12,11 @@ use App\Http\Controllers\AuthController;
 
 // Public Routes
 Route::get('/', [ArticleController::class, 'index'])->name('home');
-
 Route::get('/articles', [ArticleController::class, 'list'])->name('articles.list');
 Route::get('/category/{category}', [ArticleController::class, 'byCategory'])->name('articles.category');
+Route::get('/type/{type}', [ArticleController::class, 'byType'])->name('articles.type');
+Route::get('/region/{region}', [ArticleController::class, 'byRegion'])->name('articles.region');
+Route::get('/country/{country}', [ArticleController::class, 'byCountry'])->name('articles.country');
 Route::get('/debug/articles', [ArticleController::class, 'debug'])->name('articles.debug');
 Route::get('/test/region', [ArticleController::class, 'testRegion'])->name('articles.testRegion');
 Route::get('/articles/{article}', [ArticleController::class, 'show'])->name('articles.show');

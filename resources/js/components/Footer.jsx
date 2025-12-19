@@ -145,10 +145,10 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} Zora News. {currentLanguage === 'ur' ? 'جملہ حقوق محفوظ ہیں۔' : 'All rights reserved.'}
           </div>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <Link href={route('privacy.policy')} className="text-gray-900 dark:text-white hover:text-white text-sm transition">
+            <Link href={`${route('privacy.policy')}?language=${currentLanguage}`} className="text-gray-900 dark:text-white hover:text-white text-sm transition">
               {t('privacyPolicy')}
             </Link>
-            <Link href={route('about.us')} className="text-gray-900 dark:text-white hover:text-white text-sm transition">
+            <Link href={`${route('about.us')}?language=${currentLanguage}`} className="text-gray-900 dark:text-white hover:text-white text-sm transition">
               {t('aboutUs')}
             </Link>
             <Link href="/contact" className="text-gray-900 dark:text-white hover:text-white text-sm transition">

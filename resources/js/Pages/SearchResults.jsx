@@ -45,7 +45,7 @@ export default function SearchResults() {
                                 {articles.map((article) => (
                                     <a
                                         key={article.id}
-                                        href={`/articles/${article.id}`}
+                                        href={`/articles/${article.slug ?? article.id}`}
                                         className="block group"
                                     >
                                         <div className="flex flex-col sm:flex-row items-start sm:items-center bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-all overflow-hidden">
@@ -107,15 +107,15 @@ export default function SearchResults() {
                                             />
                                         )}
                                         <div className="p-6">
-                                            <h4 className="text-lg font-semibold mb-2 hover:underline text-gray-900 dark:text-white">
-                                                <a href={`/articles/${rel.id}`}>{rel.title}</a>
+                                                <h4 className="text-lg font-semibold mb-2 hover:underline text-gray-900 dark:text-white">
+                                                <a href={`/articles/${rel.slug ?? rel.id}`}>{rel.title}</a>
                                             </h4>
                                             <p className="text-sm mb-4 text-gray-600 dark:text-gray-300">
                                                 {rel.summary && rel.summary.length > 120 ? `${rel.summary.substring(0, 120)}...` : rel.summary}
                                             </p>
                                             <div className="flex justify-between items-center">
                                                 <a 
-                                                    href={`/articles/${rel.id}`} 
+                                                    href={`/articles/${rel.slug ?? rel.id}`} 
                                                     className="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                                                 >
                                                     {currentLanguage === 'ur' ? 'پڑھیں' : 'Read more'}

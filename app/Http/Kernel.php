@@ -52,7 +52,5 @@ class Kernel extends HttpKernel
      * @var array
      */
     protected $routeMiddleware = [
-        'admin.secret' => \App\Http\Middleware\AdminSecretMiddleware::class,
-        'admin.auth' => \App\Http\Middleware\AdminAuthMiddleware::class,
     ];
 } 
