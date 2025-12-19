@@ -36,17 +36,17 @@ export default function Header({ auth }) {
   };
   const t = (key) => translations[currentLanguage]?.[key] || key;
 
-  // Navigation and trending links generated directly for live translation
-  const navLinks = useMemo(() => [
-    { path: '/', label: t('home') },
-    { path: '/category/news', label: t('news') },
-    { path: '/category/Fiction', label: t('Fiction') },
-    { path: '/category/technology', label: t('tech') },
-    { path: '/category/Opinion', label: t('Opinion') },
-    { path: '/category/Analysis', label: t('Analysis') },
-    { path: '/category/Miscellaneous', label: t('Miscellaneous') },
-  ], [t]);
-
+// Navigation and trending links generated directly for live translation
+const navLinks = useMemo(() => [
+  { path: '/', label: t('home') },
+  { path: '/category/news', label: t('news') },
+  { path: '/category/mystery-fiction', label: t('fiction') }, // Changed from 'Fiction' to 'mystery-fiction'
+  { path: '/category/technology', label: t('tech') },
+  { path: '/category/stories', label: t('stories') },
+  { path: '/category/opinion', label: t('opinion') }, // lowercase
+  { path: '/category/analysis', label: t('analysis') }, // lowercase
+  { path: '/category/miscellaneous', label: t('miscellaneous') }, // Changed from 'Miscellaneous' to 'misc'
+], [t]);
 
 
   // Effect hooks

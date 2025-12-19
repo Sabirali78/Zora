@@ -16,7 +16,7 @@ function AppLayoutContent({ children }) {
       </Head>
       <div className="min-h-screen flex flex-col">
         <Header auth={auth} />
-        <main className="flex-1 px-4 py-6 max-w-6xl mx-auto w-full" style={{ marginTop: '70px' }}>
+        <main className="flex-1 px-4 py-6 max-w-7xl mx-auto w-full" style={{ marginTop: '70px' }}>
           {children}
         </main>
         <Footer />
