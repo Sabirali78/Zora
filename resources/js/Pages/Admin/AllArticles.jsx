@@ -19,6 +19,8 @@ export default function AllArticles({ articles }) {
     }
   };
 
+  const list = Array.isArray(articles) ? articles : (articles && articles.data) ? articles.data : [];
+
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
       <AdminNavbar adminName={adminName} darkMode={darkMode} setDarkMode={setDarkMode} />
@@ -66,7 +68,7 @@ export default function AllArticles({ articles }) {
                 </tr>
               </thead>
               <tbody className={`divide-y divide-gray-200 dark:divide-gray-700 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                {articles.map((article) => (
+                {list.map((article) => (
                   <tr key={article.id} className="hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors duration-150">
                     <td className="px-6 py-4">
                       <div className="font-medium text-gray-900 dark:text-white max-w-xs truncate">
@@ -78,15 +80,15 @@ export default function AllArticles({ articles }) {
                         ${article.language === 'en' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 
                           article.language === 'ur' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300' : 
                           'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300'}`}>
-                        {article.language.toUpperCase()}
+                        {(article.language || 'en').toUpperCase()}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(article.created_at).toLocaleDateString('en-US', {
+                      {article.created_at ? new Date(article.created_at).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric'
-                      })}
+                      }) : '-'}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium

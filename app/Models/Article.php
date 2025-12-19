@@ -5,40 +5,32 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Image;
-use Illuminate\Database\Eloquent\SoftDeletes; // Add this
-
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Article extends Model
 {
-    use SoftDeletes; // Add this trait
+    use SoftDeletes;
 
     protected $fillable = [
         'title', 'summary', 'content',
         'title_urdu', 'summary_urdu', 'content_urdu',
-        'language', 'category', 'region', 'country', 'type',
-        'tags', 'author', 'is_featured', 'is_trending', 'slug',
-         'is_breaking',
-    'is_top_story',
-    'show_in_section',
-    'section_priority'
+        'language', 'category', 'tags', 'author', 
+        'is_featured', 'slug', 'image_url', 'image_public_id'
     ];
 
     protected $casts = [
         'is_featured' => 'boolean',
-        'is_trending' => 'boolean',
-        'is_breaking' => 'boolean',
-        'is_top_story' => 'boolean',
     ];
 
-        // Add this for soft deletes
     protected $dates = ['deleted_at'];
-    
+
+    // Relationship: an article can have multiple images
     public function images(): HasMany
     {
         return $this->hasMany(Image::class);
     }
 
-    // Helper methods for multi-language content
+    // Get title based on language
     public function getTitle($language = null)
     {
         if ($language === 'ur' || $this->language === 'ur') {
@@ -47,6 +39,7 @@ class Article extends Model
         return $this->title;
     }
 
+    // Get summary based on language
     public function getSummary($language = null)
     {
         if ($language === 'ur' || $this->language === 'ur') {
@@ -55,6 +48,7 @@ class Article extends Model
         return $this->summary;
     }
 
+    // Get content based on language
     public function getContent($language = null)
     {
         if ($language === 'ur' || $this->language === 'ur') {

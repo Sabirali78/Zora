@@ -12,18 +12,13 @@ const initialForm = {
   summary_urdu: '',
   content_urdu: '',
   category: '',
-  region: '',
-  country: '',
-  type: '', // was 'news', now empty so user must choose
   tags: '',
   images: [], // for multiple uploads
   author: 'Admin',
   is_featured: false,
-  is_trending: false,
-  is_breaking: false,
-  is_top_story: false,
-  show_in_section: false,
-  section_priority: '',
+  image_url: '',
+  image_public_id: '',
+  slug: '',
 };
 
 export default function CreateArticle() {
@@ -61,17 +56,11 @@ export default function CreateArticle() {
     const data = new FormData();
     Object.entries(form).forEach(([key, value]) => {
       if (key === 'image') return;
-      // Always send 1 or 0 for all boolean fields
-      if ([
-        'is_featured',
-        'is_trending',
-        'is_breaking',
-        'is_top_story',
-        'show_in_section'
-      ].includes(key)) {
+      // Only is_featured is relevant now
+      if (key === 'is_featured') {
         data.append(key, value ? 1 : 0);
       } else {
-        data.append(key, value);
+        data.append(key, value ?? '');
       }
     });
     if (imageFiles && imageFiles.length > 0) {
@@ -86,22 +75,12 @@ export default function CreateArticle() {
 
   // Category and region options (from Header.jsx)
   const categoryOptions = [
-    { value: 'politics', label: 'Politics' },
-    { value: 'sports', label: 'Sports' },
-    { value: 'technology', label: 'Technology' },
-    { value: 'health', label: 'Health' },
-    { value: 'business', label: 'Business' },
-    { value: 'science', label: 'Science' },
-    { value: 'entertainment', label: 'Entertainment' },
-    { value: 'environment', label: 'Environment' },
-    { value: 'education', label: 'Education' },
-    { value: 'lifestyle', label: 'Lifestyle' },
-    { value: 'arts-culture', label: 'Arts & Culture' },
-    { value: 'weather', label: 'Weather' },
-    { value: 'food', label: 'Food' },
-    { value: 'travel', label: 'Travel' },
-    { value: 'fashion', label: 'Fashion' },
-    { value: 'news', label: 'News' },
+    { value: 'News', label: 'News' },
+    { value: 'Opinion', label: 'Opinion' },
+    { value: 'Analysis', label: 'Analysis' },
+    { value: 'Mystery / Fiction', label: 'Mystery / Fiction' },
+    { value: 'Stories / Creative', label: 'Stories / Creative' },
+    { value: 'Miscellaneous', label: 'Miscellaneous' },
   ];
   const regionOptions = [
     { value: 'asia', label: 'Asia' },
@@ -182,30 +161,14 @@ export default function CreateArticle() {
             </select>
           </div>
           <div>
-            <label className="block mb-1 font-medium">Region</label>
-            <select name="region" value={form.region} onChange={handleChange} className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600">
-              <option value="">Select Region</option>
-              {regionOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block mb-1 font-medium">Country</label>
-            <input name="country" value={form.country} onChange={handleChange} className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium">Type</label>
-            <select name="type" value={form.type} onChange={handleChange} className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" required>
-              <option value="">Select Type</option>
-              {typeOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
             <label className="block mb-1 font-medium">Tags (comma separated)</label>
             <input name="tags" value={form.tags} onChange={handleChange} className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Image URL (optional)</label>
+            <input name="image_url" value={form.image_url} onChange={handleChange} className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" placeholder="https://..." />
+            <label className="block mb-1 font-medium mt-2">Image public id (optional)</label>
+            <input name="image_public_id" value={form.image_public_id} onChange={handleChange} className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" placeholder="cloudinary-public-id" />
           </div>
           <div>
             <label className="block mb-1 font-medium">Images</label>
@@ -235,22 +198,6 @@ export default function CreateArticle() {
           <label className="flex items-center gap-2">
             <input type="checkbox" name="is_featured" checked={form.is_featured} onChange={handleChange} /> Featured
           </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" name="is_trending" checked={form.is_trending} onChange={handleChange} /> Trending
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" name="is_breaking" checked={form.is_breaking} onChange={handleChange} /> Breaking
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" name="is_top_story" checked={form.is_top_story} onChange={handleChange} /> Top Story
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" name="show_in_section" checked={form.show_in_section} onChange={handleChange} /> Show in Section
-          </label>
-        </div>
-        <div className="mt-2">
-          <label className="block mb-1 font-medium">Section Priority</label>
-          <input name="section_priority" value={form.section_priority} onChange={handleChange} className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" type="number" min="0" />
         </div>
         <button type="submit" className="w-full py-3 px-4 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white">Create</button>
       </form>
