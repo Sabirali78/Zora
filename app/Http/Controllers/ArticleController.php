@@ -16,140 +16,162 @@ class ArticleController extends Controller
         return implode(' ', array_slice($words, 0, $limit)) . '...';
     }
 
-    private function formatArticle($article, $language, $titleLimit = 12, $summaryLimit = 20)
-    {
-        $title = $language === 'ur' ? ($article->title_urdu ?? $article->title) : $article->title;
-        $summary = $language === 'ur' ? ($article->summary_urdu ?? $article->summary) : $article->summary;
-        return [
-            'id' => $article->id,
-            'title' => $this->limitWords($title, $titleLimit),
-            'summary' => $this->limitWords($summary, $summaryLimit),
-            'content' => $language === 'ur' ? ($article->content_urdu ?? $article->content) : $article->content,
-            'category' => $article->category,
-            'language' => $article->language,
-            'is_featured' => $article->is_featured,
-            'author' => $article->author,
-            'created_at' => $article->created_at,
-            'images' => $article->images,
-            'slug' => $article->slug,
-            'tags' => $article->tags,
-            'image_url' => $article->image_url
-        ];
+  private function formatArticle($article, $language, $titleLimit = 12, $summaryLimit = 20)
+{
+    $title = $language === 'ur' ? ($article->title_urdu ?? $article->title) : $article->title;
+    $summary = $language === 'ur' ? ($article->summary_urdu ?? $article->summary) : $article->summary;
+    
+    // Handle image URL - ensure it's properly formatted
+    $imageUrl = null;
+    
+    if ($article->image_url) {
+        // If it's already a full URL, use it
+        if (filter_var($article->image_url, FILTER_VALIDATE_URL)) {
+            $imageUrl = $article->image_url;
+        } 
+        // If it starts with storage/, convert to full URL
+        else if (str_starts_with($article->image_url, 'storage/')) {
+            $imageUrl = asset($article->image_url);
+        }
+        // If it's just a filename/path, prepend storage path
+        else if (!empty($article->image_url)) {
+            $imageUrl = asset('storage/' . ltrim($article->image_url, '/'));
+        }
+    }
+    
+    // Fallback to first image from images relationship
+    if (!$imageUrl && $article->images && $article->images->count() > 0) {
+        $firstImage = $article->images->first();
+        if ($firstImage->path) {
+            // Ensure the path is properly formatted
+            $path = str_starts_with($firstImage->path, 'storage/') 
+                ? $firstImage->path 
+                : 'storage/' . ltrim($firstImage->path, '/');
+            $imageUrl = asset($path);
+        }
+    }
+    
+    // Format the images array for the frontend
+    $formattedImages = [];
+    if ($article->images && $article->images->count() > 0) {
+        foreach ($article->images as $image) {
+            $path = str_starts_with($image->path, 'storage/') 
+                ? $image->path 
+                : 'storage/' . ltrim($image->path, '/');
+            $formattedImages[] = [
+                'id' => $image->id,
+                'url' => asset($path),
+                'path' => $image->path,
+                'original_name' => $image->original_name,
+            ];
+        }
+    }
+    
+    return [
+        'id' => $article->id,
+        'title' => $this->limitWords($title, $titleLimit),
+        'summary' => $this->limitWords($summary, $summaryLimit),
+        'content' => $language === 'ur' ? ($article->content_urdu ?? $article->content) : $article->content,
+        'category' => $article->category,
+        'language' => $article->language,
+        'is_featured' => $article->is_featured,
+        'author' => $article->author,
+        'created_at' => $article->created_at->format('M d, Y'), // Format date
+        'images' => $formattedImages,
+        'slug' => $article->slug,
+        'tags' => $article->tags,
+        'image_url' => $imageUrl, // Use the processed image URL
+    ];
+}
+
+  public function index(Request $request)
+{
+    // Language handling
+    $inputLang = $request->input('language');
+    $cookieLang = $request->cookie('language');
+    $isValidLang = function($lang) {
+        return $lang === 'en' || $lang === 'ur';
+    };
+    
+    if ($isValidLang($inputLang)) {
+        $language = $inputLang;
+    } elseif ($isValidLang($cookieLang)) {
+        $language = $cookieLang;
+    } else {
+        $language = 'en';
+    }
+    
+    // Set cookie if language is provided in request
+    if ($language && $request->has('language') && $isValidLang($language)) {
+        cookie()->queue('language', $language, 60 * 24 * 365);
     }
 
-    public function index(Request $request)
-    {
-        // Language handling
-        $inputLang = $request->input('language');
-        $cookieLang = $request->cookie('language');
-        $isValidLang = function($lang) {
-            return $lang === 'en' || $lang === 'ur';
-        };
-        
-        if ($isValidLang($inputLang)) {
-            $language = $inputLang;
-        } elseif ($isValidLang($cookieLang)) {
-            $language = $cookieLang;
-        } else {
-            $language = 'en';
-        }
-        
-        // Set cookie if language is provided in request
-        if ($language && $request->has('language') && $isValidLang($language)) {
-            cookie()->queue('language', $language, 60 * 24 * 365);
-        }
+    // Define your six writing categories
+    $categories = [
+        'News' => $language === 'ur' ? 'خبریں' : 'News',
+        'Opinion' => $language === 'ur' ? 'رائے' : 'Opinion', 
+        'Analysis' => $language === 'ur' ? 'تجزیہ' : 'Analysis',
+        'Mystery / Fiction' => $language === 'ur' ? 'پراسرار / افسانہ' : 'Mystery / Fiction',
+        'Stories / Creative' => $language === 'ur' ? 'کہانیاں / تخلیقی' : 'Stories / Creative',
+        'Miscellaneous' => $language === 'ur' ? 'متفرق' : 'Miscellaneous'
+    ];
 
-        // Get featured article for hero section (latest featured)
-        $heroArticle = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
-            ->where('is_featured', true)
-            ->where(function($query) use ($language) {
-                if ($language === 'ur') {
-                    $query->where('language', 'ur')->orWhere('language', 'multi');
-                } else {
-                    $query->where('language', 'en')->orWhere('language', 'multi');
-                }
-            })
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        // Define your six writing categories
-        $categories = [
-            'News' => $language === 'ur' ? 'خبریں' : 'News',
-            'Opinion' => $language === 'ur' ? 'رائے' : 'Opinion', 
-            'Analysis' => $language === 'ur' ? 'تجزیہ' : 'Analysis',
-            'Mystery / Fiction' => $language === 'ur' ? 'پراسرار / افسانہ' : 'Mystery / Fiction',
-            'Stories / Creative' => $language === 'ur' ? 'کہانیاں / تخلیقی' : 'Stories / Creative',
-            'Miscellaneous' => $language === 'ur' ? 'متفرق' : 'Miscellaneous'
-        ];
-
-        // Get 4 latest featured articles (excluding hero article)
-        $featuredArticlesQuery = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
-            ->where('is_featured', true)
-            ->where(function($query) use ($language) {
-                if ($language === 'ur') {
-                    $query->where('language', 'ur')->orWhere('language', 'multi');
-                } else {
-                    $query->where('language', 'en')->orWhere('language', 'multi');
-                }
-            })
-            ->orderBy('created_at', 'desc');
-
-        if ($heroArticle) {
-            $featuredArticlesQuery->where('id', '!=', $heroArticle->id);
-        }
-
-        $featuredArticles = $featuredArticlesQuery->take(4)
-            ->get()
-            ->map(function($article) use ($language) {
-                return $this->formatArticle($article, $language, 12, 20);
-            });
-
-        // Get 10 latest featured articles for vertical list
-        $featuredListArticles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
-            ->where('is_featured', true)
-            ->where(function($query) use ($language) {
-                if ($language === 'ur') {
-                    $query->where('language', 'ur')->orWhere('language', 'multi');
-                } else {
-                    $query->where('language', 'en')->orWhere('language', 'multi');
-                }
-            })
-            ->orderBy('created_at', 'desc')
-            ->take(10)
-            ->get()
-            ->map(function($article) use ($language) {
-                return $this->formatArticle($article, $language, 12, 20);
-            });
-
-        // Get latest articles by each category
-        $categoryArticles = [];
-        foreach ($categories as $categoryKey => $categoryName) {
-            $articles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
-                ->where('category', $categoryKey)
-                ->where(function($query) use ($language) {
-                    if ($language === 'ur') {
-                        $query->where('language', 'ur')->orWhere('language', 'multi');
-                    } else {
-                        $query->where('language', 'en')->orWhere('language', 'multi');
-                    }
-                })
-                ->orderBy('created_at', 'desc')
-                ->take(6) // Show 6 latest per category
-                ->get()
-                ->map(function($article) use ($language) {
-                    return $this->formatArticle($article, $language, 12, 20);
-                });
-            
-            if ($articles->count() > 0) {
-                $categoryArticles[$categoryKey] = [
-                    'name' => $categoryName,
-                    'articles' => $articles
-                ];
+    // STRATEGY: Get featured articles first, then exclude them from other sections
+    
+    // Get hero article (latest featured)
+    $heroArticle = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
+        ->where('is_featured', true)
+        ->where(function($query) use ($language) {
+            if ($language === 'ur') {
+                $query->where('language', 'ur')->orWhere('language', 'multi');
+            } else {
+                $query->where('language', 'en')->orWhere('language', 'multi');
             }
-        }
+        })
+        ->orderBy('created_at', 'desc')
+        ->first();
 
-        // Get 6 latest articles overall for "Latest Writings" section
-        $latestWritings = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
+    // Get all featured articles for featured sections
+    $featuredArticlesQuery = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
+        ->where('is_featured', true)
+        ->where(function($query) use ($language) {
+            if ($language === 'ur') {
+                $query->where('language', 'ur')->orWhere('language', 'multi');
+            } else {
+                $query->where('language', 'en')->orWhere('language', 'multi');
+            }
+        })
+        ->orderBy('created_at', 'desc');
+
+    $heroArticleId = $heroArticle ? $heroArticle->id : null;
+    $allFeaturedArticles = $featuredArticlesQuery->get();
+    
+    // Get 3 featured articles for side columns (excluding hero)
+    $sideFeaturedArticles = $allFeaturedArticles
+        ->where('id', '!=', $heroArticleId)
+        ->take(3)
+        ->values();
+    
+    // Get 10 featured articles for featured list (excluding hero and side articles)
+    $excludeIds = $sideFeaturedArticles->pluck('id')->toArray();
+    if ($heroArticleId) {
+        $excludeIds[] = $heroArticleId;
+    }
+    
+    $featuredListArticles = $allFeaturedArticles
+        ->whereNotIn('id', $excludeIds)
+        ->take(10)
+        ->values();
+
+    // For category sections, we want to exclude ALL featured articles
+    $allFeaturedArticleIds = $allFeaturedArticles->pluck('id')->toArray();
+
+    // Get latest articles by each category (excluding featured articles)
+    $categoryArticles = [];
+    foreach ($categories as $categoryKey => $categoryName) {
+        $articles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
+            ->where('category', $categoryKey)
+            ->whereNotIn('id', $allFeaturedArticleIds) // Exclude featured articles
             ->where(function($query) use ($language) {
                 if ($language === 'ur') {
                     $query->where('language', 'ur')->orWhere('language', 'multi');
@@ -163,18 +185,47 @@ class ArticleController extends Controller
             ->map(function($article) use ($language) {
                 return $this->formatArticle($article, $language, 12, 20);
             });
-
-        return Inertia::render('Home', [
-            'heroArticle' => $heroArticle ? $this->formatArticle($heroArticle, $language ?? 'en') : null,
-            'categoryArticles' => $categoryArticles,
-            'featuredArticles' => $featuredArticles,
-            'featuredListArticles' => $featuredListArticles,
-            'latestWritings' => $latestWritings,
-            'categories' => $categories,
-            'darkMode' => false,
-            'currentLanguage' => $language ?? 'en',
-        ]);
+        
+        if ($articles->count() > 0) {
+            $categoryArticles[$categoryKey] = [
+                'name' => $categoryName,
+                'articles' => $articles
+            ];
+        }
     }
+
+    // Get 6 latest articles overall for "Latest Writings" section (excluding ALL featured articles)
+    $latestWritings = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
+        ->whereNotIn('id', $allFeaturedArticleIds) // Exclude featured articles
+        ->where(function($query) use ($language) {
+            if ($language === 'ur') {
+                $query->where('language', 'ur')->orWhere('language', 'multi');
+            } else {
+                $query->where('language', 'en')->orWhere('language', 'multi');
+            }
+        })
+        ->orderBy('created_at', 'desc')
+        ->take(6)
+        ->get()
+        ->map(function($article) use ($language) {
+            return $this->formatArticle($article, $language, 12, 20);
+        });
+
+    return Inertia::render('Home', [
+        'heroArticle' => $heroArticle ? $this->formatArticle($heroArticle, $language ?? 'en') : null,
+        'sideFeaturedArticles' => $sideFeaturedArticles->map(function($article) use ($language) {
+            return $this->formatArticle($article, $language, 12, 20);
+        }),
+        'categoryArticles' => $categoryArticles,
+        'featuredListArticles' => $featuredListArticles->map(function($article) use ($language) {
+            return $this->formatArticle($article, $language, 12, 20);
+        }),
+        'latestWritings' => $latestWritings,
+        'categories' => $categories,
+        'darkMode' => false,
+        'currentLanguage' => $language ?? 'en',
+    ]);
+}
 
     public function list(Request $request)
     {

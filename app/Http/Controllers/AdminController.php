@@ -14,18 +14,17 @@ use App\Models\ModeratorLog;
 
 class AdminController extends Controller
 {
-    // Helper to get available categories for dropdowns
-    private function getCategories()
-    {
-        return [
-            'News',
-            'Opinion', 
-            'Analysis',
-            'Mystery / Fiction',
-            'Stories / Creative',
-            'Miscellaneous'
-        ];
-    }
+   private function getCategories()
+{
+    return [
+        'News',
+        'Opinion', 
+        'Analysis',
+        'Mystery / Fiction',
+        'Stories / Creative',
+        'Miscellaneous'
+    ];
+}
 
     public function dashboard(Request $request)
     {
@@ -345,88 +344,94 @@ class AdminController extends Controller
         ]);
     }
 
-    public function storeArticle(Request $request)
-    {
-        $adminId = $request->session()->get('admin_id');
-        
-        $validated = $request->validate([
-            'language' => 'required|in:en,ur,multi',
-            'title' => 'required_if:language,en,multi',
-            'summary' => 'required_if:language,en,multi',
-            'content' => 'required_if:language,en,multi',
-            'title_urdu' => 'required_if:language,ur,multi',
-            'summary_urdu' => 'required_if:language,ur,multi',
-            'content_urdu' => 'required_if:language,ur,multi',
-            'category' => 'required|in:' . implode(',', $this->getCategories()),
-            'tags' => 'nullable|string',
-            'image_url' => 'nullable|url',
-            'image_public_id' => 'nullable|string',
-            'images' => 'nullable',
-            'images.*' => 'image|max:4096',
-            'author' => 'required|string',
-            'slug' => 'nullable|string|unique:articles,slug',
-            'is_featured' => 'sometimes|boolean',
-        ]);
+  public function storeArticle(Request $request)
+{
+    $adminId = $request->session()->get('admin_id');
+    
+    $validated = $request->validate([
+        'language' => 'required|in:en,ur,multi',
+        'title' => 'required_if:language,en,multi',
+        'summary' => 'required_if:language,en,multi',
+        'content' => 'required_if:language,en,multi',
+        'title_urdu' => 'required_if:language,ur,multi',
+        'summary_urdu' => 'required_if:language,ur,multi',
+        'content_urdu' => 'required_if:language,ur,multi',
+        'category' => 'required|in:News,Opinion,Analysis,Mystery / Fiction,Stories / Creative,Miscellaneous', // Updated
+        'tags' => 'nullable|string',
+        'image_url' => 'nullable|url',
+        'image_public_id' => 'nullable|string',
+        'main_image' => 'nullable|image|max:4096',
+        'images' => 'nullable',
+        'images.*' => 'image|max:4096',
+        'author' => 'required|string',
+        'slug' => 'nullable|string|unique:articles,slug',
+        'is_featured' => 'sometimes|boolean',
+    ]);
 
-        $article = new Article();
-        $article->fill([
-            'language' => $validated['language'],
-            'title' => $validated['title'] ?? null,
-            'summary' => $validated['summary'] ?? null,
-            'content' => $validated['content'] ?? null,
-            'title_urdu' => $validated['title_urdu'] ?? null,
-            'summary_urdu' => $validated['summary_urdu'] ?? null,
-            'content_urdu' => $validated['content_urdu'] ?? null,
-            'category' => $validated['category'],
-            'tags' => $validated['tags'] ?? null,
-            'author' => $validated['author'],
-            'is_featured' => $request->boolean('is_featured', false),
-            'image_url' => $validated['image_url'] ?? null,
-            'image_public_id' => $validated['image_public_id'] ?? null,
-        ]);
+    $article = new Article();
+    $article->fill([
+        'language' => $validated['language'],
+        'title' => $validated['title'] ?? null,
+        'summary' => $validated['summary'] ?? null,
+        'content' => $validated['content'] ?? null,
+        'title_urdu' => $validated['title_urdu'] ?? null,
+        'summary_urdu' => $validated['summary_urdu'] ?? null,
+        'content_urdu' => $validated['content_urdu'] ?? null,
+        'category' => $validated['category'],
+        'tags' => $validated['tags'] ?? null,
+        'author' => $validated['author'],
+        'is_featured' => $request->boolean('is_featured', false),
+        'image_url' => $validated['image_url'] ?? null,
+        'image_public_id' => $validated['image_public_id'] ?? null,
+    ]);
 
-        // Handle slug generation
-        $article->slug = $validated['slug'] ?? \Str::slug(
-            $article->title ?? $article->title_urdu ?? uniqid('article-', true)
-        );
+    // Handle slug generation
+    $article->slug = $validated['slug'] ?? \Str::slug(
+        $article->title ?? $article->title_urdu ?? uniqid('article-', true)
+    );
 
-        // Ensure slug is unique
-        $originalSlug = $article->slug;
-        $counter = 1;
-        while (Article::where('slug', $article->slug)->exists()) {
-            $article->slug = $originalSlug . '-' . $counter++;
-        }
-
-        $article->save();
-
-        // Handle multiple image uploads
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $file) {
-                $path = $file->store('articles', 'public');
-                $article->images()->create([
-                    'path' => $path,
-                    'original_name' => $file->getClientOriginalName(),
-                    'mime_type' => $file->getClientMimeType(),
-                ]);
-            }
-        }
-
-        // Log admin create
-        if ($adminId) {
-            AdminLog::create([
-                'admin_id' => $adminId,
-                'action' => 'create',
-                'model_type' => 'Article',
-                'model_id' => $article->id,
-                'details' => 'Created article: ' . ($article->title ?? $article->title_urdu) . ' (Category: ' . $article->category . ')',
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-        }
-
-        return redirect()->route('admin.articles')->with('success', 'Article created successfully!');
+    // Ensure slug is unique
+    $originalSlug = $article->slug;
+    $counter = 1;
+    while (Article::where('slug', $article->slug)->exists()) {
+        $article->slug = $originalSlug . '-' . $counter++;
     }
 
+    $article->save();
+
+    // Handle multiple image uploads
+    if ($request->hasFile('images')) {
+        foreach ($request->file('images') as $index => $file) {
+            $path = $file->store('articles', 'public');
+            $image = $article->images()->create([
+                'path' => $path,
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getClientMimeType(),
+            ]);
+            
+            // If this is the first image and no image_url was provided, set it as main image
+            if ($index === 0 && empty($article->image_url)) {
+                $article->image_url = asset('storage/' . $path);
+                $article->save();
+            }
+        }
+    }
+
+    // Log admin create
+    if ($adminId) {
+        AdminLog::create([
+            'admin_id' => $adminId,
+            'action' => 'create',
+            'model_type' => 'Article',
+            'model_id' => $article->id,
+            'details' => 'Created article: ' . ($article->title ?? $article->title_urdu) . ' (Category: ' . $article->category . ')',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+    }
+
+    return redirect()->route('admin.articles')->with('success', 'Article created successfully!');
+}
     public function deleteArticle(Request $request, $id)
     {
         $adminId = $request->session()->get('admin_id');
@@ -467,88 +472,94 @@ class AdminController extends Controller
         ]);
     }
 
-    public function updateArticle(Request $request, $id)
-    {
-        $adminId = $request->session()->get('admin_id');
-        $article = Article::findOrFail($id);
-        
-        $validated = $request->validate([
-            'language' => 'required|in:en,ur,multi',
-            'title' => 'required_if:language,en,multi',
-            'summary' => 'required_if:language,en,multi',
-            'content' => 'required_if:language,en,multi',
-            'title_urdu' => 'required_if:language,ur,multi',
-            'summary_urdu' => 'required_if:language,ur,multi',
-            'content_urdu' => 'required_if:language,ur,multi',
-            'category' => 'required|in:' . implode(',', $this->getCategories()),
-            'tags' => 'nullable|string',
-            'image_url' => 'nullable|url',
-            'image_public_id' => 'nullable|string',
-            'images' => 'nullable',
-            'images.*' => 'image|max:4096',
-            'author' => 'required|string',
-            'slug' => 'nullable|string|unique:articles,slug,' . $article->id,
-            'is_featured' => 'sometimes|boolean',
-        ]);
+  public function updateArticle(Request $request, $id)
+{
+    $adminId = $request->session()->get('admin_id');
+    $article = Article::findOrFail($id);
+    
+    $validated = $request->validate([
+        'language' => 'required|in:en,ur,multi',
+        'title' => 'required_if:language,en,multi',
+        'summary' => 'required_if:language,en,multi',
+        'content' => 'required_if:language,en,multi',
+        'title_urdu' => 'required_if:language,ur,multi',
+        'summary_urdu' => 'required_if:language,ur,multi',
+        'content_urdu' => 'required_if:language,ur,multi',
+        'category' => 'required|in:News,Opinion,Analysis,Mystery / Fiction,Stories / Creative,Miscellaneous', // Updated
+        'tags' => 'nullable|string',
+        'image_url' => 'nullable|url',
+        'image_public_id' => 'nullable|string',
+        'main_image' => 'nullable|image|max:4096',
+        'images' => 'nullable',
+        'images.*' => 'image|max:4096',
+        'author' => 'required|string',
+        'slug' => 'nullable|string|unique:articles,slug,' . $article->id,
+        'is_featured' => 'sometimes|boolean',
+    ]);
 
-        $article->language = $validated['language'];
-        $article->title = $validated['title'] ?? null;
-        $article->summary = $validated['summary'] ?? null;
-        $article->content = $validated['content'] ?? null;
-        $article->title_urdu = $validated['title_urdu'] ?? null;
-        $article->summary_urdu = $validated['summary_urdu'] ?? null;
-        $article->content_urdu = $validated['content_urdu'] ?? null;
-        $article->category = $validated['category'];
-        $article->tags = $validated['tags'] ?? null;
-        $article->author = $validated['author'];
-        $article->is_featured = $request->boolean('is_featured', false);
-        $article->image_url = $validated['image_url'] ?? null;
-        $article->image_public_id = $validated['image_public_id'] ?? null;
-        
-        // Handle slug update and uniqueness
-        if (isset($validated['slug']) && !empty($validated['slug'])) {
-            $slug = $validated['slug'];
-        } else {
-            $slug = \Str::slug($article->title ?? $article->title_urdu ?? uniqid('article-', true));
-        }
-        
-        $originalSlug = $slug;
-        $counter = 1;
-        while (Article::where('slug', $slug)->where('id', '!=', $article->id)->exists()) {
-            $slug = $originalSlug . '-' . $counter++;
-        }
-        
-        $article->slug = $slug;
-        $article->save();
-
-        // Handle multiple image uploads
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $file) {
-                $path = $file->store('articles', 'public');
-                $article->images()->create([
-                    'path' => $path,
-                    'original_name' => $file->getClientOriginalName(),
-                    'mime_type' => $file->getClientMimeType(),
-                ]);
-            }
-        }
-
-        // Log admin update
-        if ($adminId) {
-            AdminLog::create([
-                'admin_id' => $adminId,
-                'action' => 'update',
-                'model_type' => 'Article',
-                'model_id' => $article->id,
-                'details' => 'Updated article: ' . ($article->title ?? $article->title_urdu) . ' (Category: ' . $article->category . ')',
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-        }
-
-        return redirect()->route('admin.articles')->with('success', 'Article updated successfully!');
+    $article->language = $validated['language'];
+    $article->title = $validated['title'] ?? null;
+    $article->summary = $validated['summary'] ?? null;
+    $article->content = $validated['content'] ?? null;
+    $article->title_urdu = $validated['title_urdu'] ?? null;
+    $article->summary_urdu = $validated['summary_urdu'] ?? null;
+    $article->content_urdu = $validated['content_urdu'] ?? null;
+    $article->category = $validated['category'];
+    $article->tags = $validated['tags'] ?? null;
+    $article->author = $validated['author'];
+    $article->is_featured = $request->boolean('is_featured', false);
+    $article->image_url = $validated['image_url'] ?? null;
+    $article->image_public_id = $validated['image_public_id'] ?? null;
+    
+    // Handle main image upload
+    if ($request->hasFile('main_image')) {
+        $mainImagePath = $request->file('main_image')->store('articles/main', 'public');
+       $article->image_url = 'storage/' . $mainImagePath;
     }
     
+    // Handle slug update and uniqueness
+    if (isset($validated['slug']) && !empty($validated['slug'])) {
+        $slug = $validated['slug'];
+    } else {
+        $slug = \Str::slug($article->title ?? $article->title_urdu ?? uniqid('article-', true));
+    }
+    
+    $originalSlug = $slug;
+    $counter = 1;
+    while (Article::where('slug', $slug)->where('id', '!=', $article->id)->exists()) {
+        $slug = $originalSlug . '-' . $counter++;
+    }
+    
+    $article->slug = $slug;
+    $article->save();
+
+    // Handle multiple image uploads
+    if ($request->hasFile('images')) {
+        foreach ($request->file('images') as $file) {
+            $path = $file->store('articles', 'public');
+            $article->images()->create([
+                'path' => $path,
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getClientMimeType(),
+            ]);
+        }
+    }
+
+    // Log admin update
+    if ($adminId) {
+        AdminLog::create([
+            'admin_id' => $adminId,
+            'action' => 'update',
+            'model_type' => 'Article',
+            'model_id' => $article->id,
+            'details' => 'Updated article: ' . ($article->title ?? $article->title_urdu) . ' (Category: ' . $article->category . ')',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+    }
+
+    return redirect()->route('admin.articles')->with('success', 'Article updated successfully!');
+}
     // New method to toggle featured status
     public function toggleFeatured(Request $request, $id)
     {
