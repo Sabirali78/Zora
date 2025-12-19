@@ -26,7 +26,7 @@ export default function Login() {
     setProcessing(true);
     setErrors({});
     
-    router.post('/moderator/login', form, {
+    router.post('/auth/login', form, {
       preserveScroll: true,
       preserveState: true,
       onError: (err) => {
@@ -46,7 +46,7 @@ export default function Login() {
     <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
       <div className={`max-w-md w-full p-8 shadow-lg rounded-lg ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
         <h1 className={`text-2xl font-bold text-center mb-6 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-          Login to Moderator Account
+          Login to Account
         </h1>
 
         {errors.email && typeof errors.email === 'string' && (
