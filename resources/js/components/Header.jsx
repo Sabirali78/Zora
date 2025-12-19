@@ -399,7 +399,7 @@ const navLinks = useMemo(() => [
                 </div>
               ) : (
                 <button
-                  onClick={() => router.get('/SECRET123')}
+                  onClick={() => router.get('/moderator/login')}
                   className={`flex items-center p-2 rounded-lg transition-colors ${
                     darkMode
                       ? 'hover:bg-gray-800 text-gray-300'
@@ -543,7 +543,7 @@ const navLinks = useMemo(() => [
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                       <button
                         onClick={() => {
-                          router.get('/admin-secret-url');
+                          router.get('/moderator/login');
                           setMobileMenuOpen(false);
                         }}
                         className={`flex items-center w-full px-3 py-2 text-base text-left ${

@@ -159,27 +159,55 @@ class AdminController extends Controller
         return back()->withErrors(['email' => 'Invalid credentials'])->withInput();
     }
 
-    public function logout(Request $request)
-    {
-        $adminId = $request->session()->get('admin_id');
-        if ($adminId) {
-            AdminLog::create([
-                'admin_id' => $adminId,
-                'action' => 'logout',
-                'model_type' => null,
-                'model_id' => null,
-                'details' => 'Admin logged out',
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-        }
-        
-        $request->session()->forget('is_admin');
-        $request->session()->forget('admin_id');
-        $secret = $request->attributes->get('admin_secret', 'admin-SECRET123');
-        return redirect("/{$secret}/login");
+  public function logout(Request $request)
+{
+    $adminId = $request->session()->get('admin_id');
+    
+    // Log the logout action
+    if ($adminId) {
+        AdminLog::create([
+            'admin_id' => $adminId,
+            'action' => 'logout',
+            'model_type' => null,
+            'model_id' => null,
+            'details' => 'Admin logged out',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
     }
-
+    
+    // DEBUG: Log what's in session before logout
+    \Log::info('Before logout', [
+        'session_id' => session()->getId(),
+        'is_admin' => session()->get('is_admin'),
+        'admin_id' => session()->get('admin_id'),
+        'all_session' => session()->all()
+    ]);
+    
+    // METHOD 1: Laravel's proper logout (recommended)
+    Auth::logout(); // This handles everything
+    
+    // METHOD 2: Manual session destruction (alternative)
+    // $request->session()->invalidate(); // Invalidate the session
+    // $request->session()->regenerateToken(); // Regenerate CSRF token
+    // session()->flush(); // Remove all data
+    
+    // Clear specific admin data
+    session()->forget('is_admin');
+    session()->forget('admin_id');
+    session()->forget('admin_name');
+    session()->forget('admin_email');
+    
+    // DEBUG: Log what's in session after logout
+    \Log::info('After logout', [
+        'session_id' => session()->getId(),
+        'is_admin' => session()->get('is_admin'),
+        'admin_id' => session()->get('admin_id'),
+    ]);
+    
+    $secret = $request->attributes->get('admin_secret', 'SECRET123');
+    return redirect("/{$secret}/login")->with('message', 'Logged out successfully');
+}
     public function allArticles(Request $request)
     {
         $query = Article::query();

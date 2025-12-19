@@ -43,11 +43,15 @@ class ModeratorAuthController extends Controller
     /** Show moderator login page */
     public function showLogin(Request $request)
     {
-        // Redirect moderators to the unified admin login page (uses secret path)
-        return redirect(route('admin.login'));
+        // Check if already logged in as moderator
+        if (Auth::check() && Auth::user()->role === 'moderator') {
+            return redirect('/moderator');
+        }
+        
+        return Inertia::render('auth/Login');
     }
 
-    /** Handle moderator login */
+    /** Handle moderator login - FIXED FOR INERTIA */
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -55,18 +59,31 @@ class ModeratorAuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        // Attempt to authenticate only users with role moderator
-        $user = User::where('email', $credentials['email'])->first();
-        if (!$user || $user->role !== 'moderator') {
-            return back()->withErrors(['email' => 'Invalid moderator credentials'])->withInput();
-        }
-
-        if (Auth::attempt($credentials)) {
+        // Attempt to authenticate
+        if (Auth::attempt($credentials, $request->filled('remember'))) {
             $request->session()->regenerate();
-            return redirect()->intended('/moderator');
+            
+            // Check if the authenticated user is a moderator
+            if (Auth::user()->role === 'moderator') {
+                // Redirect to moderator dashboard
+                return redirect()->intended('/moderator');
+            } else {
+                // Logout if user is not a moderator
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                
+                // Use Inertia's back() with errors
+                return back()->withErrors([
+                    'email' => 'Access denied. Moderator account required.'
+                ]);
+            }
         }
 
-        return back()->withErrors(['email' => 'Invalid moderator credentials'])->withInput();
+        // Authentication failed - return with Inertia errors
+        return back()->withErrors([
+            'email' => 'Invalid credentials'
+        ]);
     }
 
     /** Logout moderator */
@@ -75,6 +92,6 @@ class ModeratorAuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect(route('admin.login'));
+        return redirect('/moderator/login');
     }
 }

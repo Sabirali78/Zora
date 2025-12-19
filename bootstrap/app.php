@@ -1,11 +1,8 @@
 <?php
 
-use App\Http\Middleware\HandleAppearance;
-use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,16 +11,18 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Register alias middleware
         $middleware->alias([
             'admin.secret' => \App\Http\Middleware\AdminSecretMiddleware::class,
             'admin.auth' => \App\Http\Middleware\AdminAuthMiddleware::class,
+            'moderator.only' => \App\Http\Middleware\CheckModeratorRole::class,
         ]);
 
         $middleware->web(append: [
             \App\Http\Middleware\SetLocale::class,
-            HandleAppearance::class,
-            HandleInertiaRequests::class,
-            AddLinkHeadersForPreloadedAssets::class,
+            \App\Http\Middleware\HandleAppearance::class,
+            \App\Http\Middleware\HandleInertiaRequests::class,
+            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

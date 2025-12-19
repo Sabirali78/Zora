@@ -14,7 +14,7 @@ class ModeratorUserSeeder extends Seeder
     public function run(): void
     {
         // Don't create duplicate moderator
-        $email = 'Younis78@gmail.com';
+        $email = 'Younis@gmail.com';
         if (User::where('email', $email)->exists()) {
             $this->command->info('Moderator already exists: ' . $email);
             return;
@@ -23,7 +23,7 @@ class ModeratorUserSeeder extends Seeder
         User::create([
             'name' => 'Youins',
             'email' => $email,
-            'password' => Hash::make('younis123'), // change in production
+            'password' => Hash::make('12121212'), // change in production
             'is_admin' => false,
             'role' => 'moderator',
             'email_verified_at' => now(),

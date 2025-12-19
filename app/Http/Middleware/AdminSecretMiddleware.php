@@ -8,27 +8,30 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AdminSecretMiddleware
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        // Define your secret slug here
-        $secret = 'SECRET123'; // Change this to your actual secret
-        $path = ltrim($request->path(), '/');
-
-        // Allow access only if the path starts with the secret
-        if (strpos($path, $secret) !== 0) {
-            return redirect('/');
+        $secret = 'SECRET123';
+        $path = $request->path();
+        
+        // Debug: Log the path and route info
+        // \Log::info("AdminSecretMiddleware: Path={$path}, RouteName=" . ($request->route() ? $request->route()->getName() : 'null'));
+        
+        // Allow access to login page WITHOUT checking admin auth
+        if (str_contains($path, "{$secret}/login")) {
+            return $next($request);
         }
-
-        // Remove the secret from the path for route handling
-        $request->server->set('REQUEST_URI', '/' . substr($path, strlen($secret)));
-        $request->server->set('PATH_INFO', '/' . substr($path, strlen($secret)));
-        $request->attributes->set('admin_secret', $secret);
-
+        
+        // For any other path containing the secret, require admin auth
+        if (str_contains($path, $secret)) {
+            // This will be checked by AdminAuthMiddleware
+            return $next($request);
+        }
+        
+        // If someone tries to access admin routes without secret, show 404
+        if ($request->routeIs('admin.*')) {
+            abort(404);
+        }
+        
         return $next($request);
     }
 }
