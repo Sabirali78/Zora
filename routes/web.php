@@ -51,6 +51,8 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     Route::post('/articles', [AdminController::class, 'storeArticle'])->name('admin.articles.store');
     Route::delete('/articles/{id}', [AdminController::class, 'deleteArticle'])->name('admin.articles.delete');
     Route::get('/articles/{id}/edit', [AdminController::class, 'editArticle'])->name('admin.articles.edit');
+Route::post('/articles/{id}/remove-image/{image}', [AdminController::class, 'removeImage'])
+    ->name('admin.articles.remove-image');
     Route::post('/articles/{id}/update', [AdminController::class, 'updateArticle'])->name('admin.articles.update');
 });
 
@@ -70,37 +72,4 @@ Route::prefix('moderator')->middleware('auth')->group(function () {
 // Catch all other routes and redirect to home (no 404 errors)
 Route::fallback(function() {
     return redirect('/');
-});
-
-// routes/web.php
-Route::get('/debug-article/{id}', function($id) {
-    $article = \App\Models\Article::with('images')->find($id);
-    
-    if (!$article) {
-        return response()->json(['error' => 'Article not found']);
-    }
-    
-    $controller = new \App\Http\Controllers\ArticleController();
-    $formatted = $controller->formatArticle($article);
-    
-    // Check storage path
-    $storagePath = null;
-    if ($article->images->count() > 0) {
-        $imagePath = $article->images->first()->path;
-        $storagePath = storage_path('app/public/' . str_replace('storage/app/public/', '', $imagePath));
-    }
-    
-    return response()->json([
-        'article_id' => $article->id,
-        'title' => $article->title,
-        'has_images_relation' => $article->images->count(),
-        'images_table_data' => $article->images,
-        'image_url_column' => $article->image_url,
-        'formatted_result' => $formatted,
-        'storage_path_exists' => $storagePath ? file_exists($storagePath) : false,
-        'storage_path' => $storagePath,
-        'web_url' => $formatted['image_url'],
-        'direct_storage_url' => $article->images->count() > 0 ? 
-            asset('storage/articles/' . basename($article->images->first()->path)) : null,
-    ]);
 });

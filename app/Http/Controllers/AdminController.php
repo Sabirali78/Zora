@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Trash;
 use App\Models\AdminLog;
 use App\Models\ModeratorLog;
+use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
@@ -111,6 +112,78 @@ class AdminController extends Controller
         ]);
     }
 
+    public function removeImage(Request $request, $articleId, $imageId)
+{
+    \Log::info('Admin removeImage called', [
+        'article_id' => $articleId,
+        'image_id' => $imageId,
+        'admin_id' => Auth::id(),
+        'url' => $request->fullUrl(),
+    ]);
+    
+    // Check if user is admin
+    if (!Auth::check() || (Auth::user()->role !== 'admin' && Auth::user()->is_admin != 1)) {
+        \Log::warning('Unauthorized access to removeImage');
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    try {
+        \Log::info('Looking for article and image...');
+        
+        // Find the article
+        $article = Article::find($articleId);
+        if (!$article) {
+            \Log::error('Article not found', ['article_id' => $articleId]);
+            return response()->json(['error' => 'Article not found'], 404);
+        }
+        
+        // Find the image - use where clause to be safe
+        $image = $article->images()->where('id', $imageId)->first();
+        if (!$image) {
+            \Log::error('Image not found', ['image_id' => $imageId]);
+            return response()->json(['error' => 'Image not found'], 404);
+        }
+        
+        \Log::info('Found article and image', [
+            'article_title' => $article->title,
+            'image_path' => $image->path,
+        ]);
+        
+        // Delete the image file from storage
+        if ($image->path && Storage::disk('public')->exists($image->path)) {
+            Storage::disk('public')->delete($image->path);
+            \Log::info('Deleted file from storage', ['path' => $image->path]);
+        }
+        
+        // Delete the image record
+        $image->delete();
+        \Log::info('Deleted image record from database');
+        
+        // Log the action
+        AdminLog::create([
+            'admin_id' => Auth::id(),
+            'action' => 'delete',
+            'model_type' => 'Image',
+            'model_id' => $imageId,
+            'details' => 'Removed image from article: ' . $article->title . ' (Image ID: ' . $imageId . ')',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+        
+        \Log::info('Image removal completed successfully');
+        
+        // Return Inertia response instead of plain JSON
+        return redirect()->back()->with('success', 'Image removed successfully');
+        
+    } catch (\Exception $e) {
+        \Log::error('Error removing image', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        
+        return redirect()->back()->with('error', 'Error removing image: ' . $e->getMessage());
+    }
+}
     
     public function allArticles(Request $request)
     {
