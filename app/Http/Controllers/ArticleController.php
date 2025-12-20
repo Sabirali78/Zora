@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Article;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+
 
 class ArticleController extends Controller
 {
@@ -20,79 +22,41 @@ public function formatArticle($article, $titleLimit = 12, $summaryLimit = 20)
 {
     $title = $article->title;
     $summary = $article->summary;
-    
-    // Handle image URL
+
     $imageUrl = null;
-    
-    // 1. FIRST PRIORITY: Check if article has local images in images table
+
+    // First priority → local stored images
     if ($article->images && $article->images->count() > 0) {
         $firstImage = $article->images->first();
-        
-        // Debug: Log what we found
-        // \Log::info('Local image found:', ['path' => $firstImage->path]);
-        
+
         if ($firstImage->path) {
-            // Handle different path formats
-            $path = $firstImage->path;
-            
-            // If it's a full path with storage/app/public
-            if (str_starts_with($path, 'storage/app/public/')) {
-                // Convert to web-accessible path
-                $relativePath = str_replace('storage/app/public/', '', $path);
-                $imageUrl = asset('storage/' . $relativePath);
-            }
-            // If it's already a web-accessible path starting with storage/
-            else if (str_starts_with($path, 'storage/')) {
-                $imageUrl = asset($path);
-            }
-            // If it's just a filename or relative path
-            else {
-                // Assume it's in articles directory
-                $imageUrl = asset('storage/articles/' . basename($path));
-            }
+            $imageUrl = Storage::url($firstImage->path);
         }
     }
-    
-    // 2. SECOND PRIORITY: Use online image_url if no local images
+
+    // Second priority → image_url column
     if (!$imageUrl && $article->image_url) {
-        // If it's already a full URL, use it
         if (filter_var($article->image_url, FILTER_VALIDATE_URL)) {
             $imageUrl = $article->image_url;
-        } 
-        // If it's a storage path
-        else if (str_starts_with($article->image_url, 'storage/')) {
+        } else {
             $imageUrl = asset($article->image_url);
         }
     }
-    
-    // Format images array for frontend
+
+    // Build images array correctly
     $formattedImages = [];
+
     if ($article->images && $article->images->count() > 0) {
         foreach ($article->images as $image) {
-            $path = $image->path;
-            $url = null;
-            
-            // Generate URL for each image
-            if (str_starts_with($path, 'storage/app/public/')) {
-                $relativePath = str_replace('storage/app/public/', '', $path);
-                $url = asset('storage/' . $relativePath);
-            }
-            else if (str_starts_with($path, 'storage/')) {
-                $url = asset($path);
-            }
-            else {
-                $url = asset('storage/articles/' . basename($path));
-            }
-            
             $formattedImages[] = [
                 'id' => $image->id,
-                'url' => $url,
+                'url' => Storage::url($image->path),
                 'path' => $image->path,
                 'original_name' => $image->original_name,
             ];
         }
     }
-    
+
     return [
         'id' => $article->id,
         'title' => $this->limitWords($title, $titleLimit),
@@ -102,10 +66,10 @@ public function formatArticle($article, $titleLimit = 12, $summaryLimit = 20)
         'is_featured' => $article->is_featured,
         'author' => $article->author,
         'created_at' => $article->created_at->format('M d, Y'),
-        'images' => $formattedImages,  // Array of all images
+        'images' => $formattedImages,
         'slug' => $article->slug,
         'tags' => $article->tags,
-        'image_url' => $imageUrl,  // Single main image URL (either local or online)
+        'image_url' => $imageUrl,
     ];
 }
 

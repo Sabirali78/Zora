@@ -7,80 +7,29 @@ export default function Articles() {
     const { 
         articles = [], 
         darkMode, 
-        currentLanguage: urlLanguage, 
         filter, 
         filterValue,
         category = null 
     } = usePage().props;
-    
-    const currentLanguage = urlLanguage || 'en';
+
     const [viewMode, setViewMode] = useState('grid');
     const [sortBy, setSortBy] = useState('newest');
 
-    // Memoized translations to prevent re-creation on every render
-    const translations = useMemo(() => ({
-        en: {
-            allArticles: 'All Articles',
-            articlesFound: 'articles found',
-            noArticles: 'No articles found',
-            adjustFilters: 'Try adjusting your filters or search terms',
-            newest: 'Newest',
-            oldest: 'Oldest',
-            featured: 'Featured',
-            popular: 'Popular',
-            readTime: 'min read',
-            views: 'views',
-            by: 'by',
-            category: 'Category',
-            trending: 'Trending'
-        },
-        ur: {
-            allArticles: 'تمام خبریں',
-            articlesFound: 'خبریں ملیں',
-            noArticles: 'کوئی خبر نہیں ملی',
-            adjustFilters: 'اپنے فلٹرز کو تبدیل کریں یا نئی تلاش کریں',
-            newest: 'تازہ ترین',
-            oldest: 'پرانی',
-            featured: 'نمایاں',
-            popular: 'مقبول',
-            readTime: 'منٹ پڑھنے',
-            views: 'ملاحظات',
-            by: 'از',
-            category: 'زمرہ',
-            trending: 'رائج الوقت'
-        }
-    }), []);
-
-    const t = translations[currentLanguage === 'ur' ? 'ur' : 'en'];
-
     // Optimized image URL getter
     const getArticleImageUrl = useMemo(() => {
-        const getImageUrl = (imagePath) => {
-            if (!imagePath) return null;
-            return `/storage/${imagePath.replace(/^storage\//, '')}`;
-        };
-
         return (article) => {
             if (!article) return null;
             if (article.image_url) return article.image_url;
             if (article.images?.[0]?.url) return article.images[0].url;
+            if (article.images?.[0]?.path) return `/storage/${article.images[0].path.replace(/^storage\//, '')}`;
             return null;
         };
     }, []);
-    }, []);
 
-    // Optimized content getter
-    const getArticleContent = useMemo(() => (article, field) => {
-        if (currentLanguage === 'ur') {
-            return article[`${field}_urdu`] || article[field];
-        }
-        return article[field];
-    }, [currentLanguage]);
-
-    const getArticleTitle = (article) => getArticleContent(article, 'title');
+    const getArticleTitle = (article) => article?.title || '';
     const getArticleSummary = (article) => {
-        const summary = getArticleContent(article, 'summary');
-        const content = getArticleContent(article, 'content');
+        const summary = article?.summary || '';
+        const content = article?.content || '';
         return summary || (content ? content.substring(0, 150) + '...' : '');
     };
 
@@ -104,7 +53,6 @@ export default function Articles() {
             case 'featured':
                 return articlesCopy.sort((a, b) => (b.is_featured || 0) - (a.is_featured || 0));
             case 'popular':
-                // Assuming you have a views field, otherwise fallback to newest
                 return articlesCopy.sort((a, b) => (b.views || 0) - (a.views || 0));
             default:
                 return articlesCopy;
@@ -112,7 +60,7 @@ export default function Articles() {
     }, [articles, sortBy]);
 
     // Get category display name
-     const getCategoryDisplayName = () => {
+    const getCategoryDisplayName = () => {
         const titleCase = (str) =>
             String(str || '')
                 .replace(/-/g, ' ')
@@ -120,27 +68,24 @@ export default function Articles() {
                 .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
                 .join(' ');
 
-        // If backend passed a category object use its name/title
         if (category) {
             if (typeof category === 'object') {
-                return category.name || category.title || (category.slug ? titleCase(category.slug) : t.allArticles);
+                return category.name || category.title || (category.slug ? titleCase(category.slug) : 'All Articles');
             }
-            // If it's a slug/string convert to Title Case (e.g. "news" or "mystery-fiction" -> "Mystery Fiction")
             if (typeof category === 'string') {
                 const normalized = category.trim();
                 if (normalized === '' || normalized === 'all' || normalized === 'all-articles') {
-                    return t.allArticles;
+                    return 'All Articles';
                 }
                 return titleCase(normalized);
             }
         }
 
-        // Fallback: derive from first article's category if available
         if (articles && articles.length > 0 && articles[0].category) {
             return articles[0].category;
         }
 
-        return t.allArticles;
+        return 'All Articles';
     };
 
     // Featured articles (first 3)
@@ -156,10 +101,7 @@ export default function Articles() {
     );
 
     return (
-        <AppLayout 
-            darkMode={darkMode} 
-            currentLanguage={currentLanguage}
-        >
+        <AppLayout darkMode={darkMode}>
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
                 <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
                     {/* Page Header with Breadcrumb */}
@@ -171,7 +113,7 @@ export default function Articles() {
                                         href="/" 
                                         className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-red-600 dark:text-gray-400 dark:hover:text-white"
                                     >
-                                        {currentLanguage === 'ur' ? 'ہوم' : 'Home'}
+                                        Home
                                     </Link>
                                 </li>
                                 <li>
@@ -193,10 +135,10 @@ export default function Articles() {
                                     {getCategoryDisplayName()}
                                 </h1>
                                 <p className="text-gray-600 dark:text-gray-400">
-                                    {sortedArticles.length} {t.articlesFound}
+                                    {sortedArticles.length} {sortedArticles.length === 1 ? 'article found' : 'articles found'}
                                     {category && (
                                         <span className="ml-2 px-3 py-1 text-xs bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 rounded-full">
-                                            {t.category}
+                                            Category
                                         </span>
                                     )}
                                 </p>
@@ -210,7 +152,7 @@ export default function Articles() {
                             <div className="flex items-center mb-4">
                                 <TrendingUp className="h-5 w-5 text-red-600 mr-2" />
                                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                    {t.trending} {t.featured}
+                                    Trending & Featured
                                 </h2>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -223,8 +165,6 @@ export default function Articles() {
                                         getArticleSummary={getArticleSummary}
                                         getArticleImageUrl={getArticleImageUrl}
                                         calculateReadTime={calculateReadTime}
-                                        t={t}
-                                        currentLanguage={currentLanguage}
                                     />
                                 ))}
                             </div>
@@ -258,19 +198,18 @@ export default function Articles() {
                                     <List className="h-4 w-4" />
                                 </button>
                             </div>
-                            <h1>All Articles</h1>
                             
                             <div className="flex items-center space-x-4">
-                                <span className="text-sm text-gray-600 dark:text-gray-400">{t.sortBy}:</span>
+                                <span className="text-sm text-gray-600 dark:text-gray-400">Sort by:</span>
                                 <select 
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
                                     className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-red-500 focus:border-red-500 block p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
                                 >
-                                    <option value="newest">{t.newest}</option>
-                                    <option value="oldest">{t.oldest}</option>
-                                    <option value="featured">{t.featured}</option>
-                                    <option value="popular">{t.popular}</option>
+                                    <option value="newest">Newest</option>
+                                    <option value="oldest">Oldest</option>
+                                    <option value="featured">Featured</option>
+                                    <option value="popular">Popular</option>
                                 </select>
                             </div>
                         </div>
@@ -293,30 +232,12 @@ export default function Articles() {
                                         getArticleSummary={getArticleSummary}
                                         getArticleImageUrl={getArticleImageUrl}
                                         calculateReadTime={calculateReadTime}
-                                        t={t}
-                                        currentLanguage={currentLanguage}
                                     />
                                 ))}
                             </div>
-
-                            {/* Load More Button (if paginated) */}
-                            {articles?.next_page_url && (
-                                <div className="mt-8 text-center">
-                                    <button
-                                        onClick={() => router.get(articles.next_page_url)}
-                                        className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200"
-                                    >
-                                        {currentLanguage === 'ur' ? 'مزید خبریں دیکھیں' : 'Load More Articles'}
-                                    </button>
-                                </div>
-                            )}
                         </>
                     ) : (
-                        <EmptyState 
-                            darkMode={darkMode} 
-                            currentLanguage={currentLanguage}
-                            t={t}
-                        />
+                        <EmptyState darkMode={darkMode} />
                     )}
                 </div>
             </div>
@@ -331,9 +252,7 @@ const FeaturedArticleCard = ({
     getArticleTitle, 
     getArticleSummary, 
     getArticleImageUrl, 
-    calculateReadTime,
-    t,
-    currentLanguage 
+    calculateReadTime
 }) => {
     const imageUrl = getArticleImageUrl(article);
     
@@ -356,7 +275,7 @@ const FeaturedArticleCard = ({
                         />
                         <div className="absolute top-4 left-4">
                             <span className="px-3 py-1 bg-red-600 text-white text-xs font-bold rounded-full">
-                                {t.featured}
+                                Featured
                             </span>
                         </div>
                     </div>
@@ -367,7 +286,7 @@ const FeaturedArticleCard = ({
                         <span className="font-medium">{article.category || 'General'}</span>
                         <span className="mx-2">•</span>
                         <Clock className="h-3 w-3 mr-1" />
-                        <span>{calculateReadTime(getArticleSummary(article))} {t.readTime}</span>
+                        <span>{calculateReadTime(getArticleSummary(article))} min read</span>
                     </div>
                     <h2 className="text-xl font-bold mb-3 line-clamp-2">
                         {getArticleTitle(article)}
@@ -378,12 +297,12 @@ const FeaturedArticleCard = ({
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">
                             <User className="h-4 w-4 text-gray-400 mr-2" />
-                            <span className="text-sm font-medium">{article.author}</span>
+                            <span className="text-sm font-medium">{article.author || 'Anonymous'}</span>
                         </div>
                         {article.views > 0 && (
                             <div className="flex items-center text-sm text-gray-500">
                                 <Eye className="h-4 w-4 mr-1" />
-                                {article.views} {t.views}
+                                {article.views} views
                             </div>
                         )}
                     </div>
@@ -400,9 +319,7 @@ const ArticleCard = ({
     getArticleTitle, 
     getArticleSummary, 
     getArticleImageUrl, 
-    calculateReadTime,
-    t,
-    currentLanguage 
+    calculateReadTime
 }) => {
     const imageUrl = getArticleImageUrl(article);
     
@@ -431,7 +348,7 @@ const ArticleCard = ({
                             </span>
                             <span className="mx-2">•</span>
                             <Clock className="h-3 w-3 mr-1" />
-                            <span>{calculateReadTime(getArticleSummary(article))} {t.readTime}</span>
+                            <span>{calculateReadTime(getArticleSummary(article))} min read</span>
                         </div>
                         <h2 className="text-lg font-semibold mb-2 line-clamp-2">
                             {getArticleTitle(article)}
@@ -442,10 +359,10 @@ const ArticleCard = ({
                         <div className="flex items-center justify-between text-sm">
                             <div className="flex items-center">
                                 <User className="h-4 w-4 text-gray-400 mr-2" />
-                                <span>{article.author}</span>
+                                <span>{article.author || 'Anonymous'}</span>
                             </div>
                             <span className="text-gray-500 dark:text-gray-400">
-                                {new Date(article.created_at).toLocaleDateString(currentLanguage === 'ur' ? 'ur-PK' : 'en-US', {
+                                {new Date(article.created_at).toLocaleDateString('en-US', {
                                     year: 'numeric',
                                     month: 'short',
                                     day: 'numeric'
@@ -482,7 +399,7 @@ const ArticleCard = ({
                     {article.is_featured && (
                         <div className="absolute top-3 left-3">
                             <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold rounded">
-                                {t.featured}
+                                Featured
                             </span>
                         </div>
                     )}
@@ -494,7 +411,7 @@ const ArticleCard = ({
                         </span>
                         <div className="flex items-center text-xs text-gray-500">
                             <Clock className="h-3 w-3 mr-1" />
-                            {calculateReadTime(getArticleSummary(article))} {t.readTime}
+                            {calculateReadTime(getArticleSummary(article))} min read
                         </div>
                     </div>
                     <h2 className="text-lg font-semibold mb-3 line-clamp-2">
@@ -507,16 +424,17 @@ const ArticleCard = ({
                         <div className="flex items-center">
                             <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mr-2">
                                 <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                    {article.author?.charAt(0) || 'A'}
+                                    {(article.author || 'Anonymous').charAt(0)}
                                 </span>
                             </div>
                             <div className="text-sm">
-                                <div className="font-medium">{article.author}</div>
-                                <div className="text-xs text-gray-500">{t.by}</div>
+                                    <div className="text-xs text-gray-500">by</div>
+                                <div className="font-medium">{article.author || 'Anonymous'}</div>
+                            
                             </div>
                         </div>
                         <div className="text-xs text-gray-500">
-                            {new Date(article.created_at).toLocaleDateString(currentLanguage === 'ur' ? 'ur-PK' : 'en-US', {
+                            {new Date(article.created_at).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric'
                             })}
@@ -529,22 +447,22 @@ const ArticleCard = ({
 };
 
 // Empty State Component
-const EmptyState = ({ darkMode, currentLanguage, t }) => (
+const EmptyState = ({ darkMode }) => (
     <div className="text-center py-16">
         <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full ${darkMode ? 'bg-gray-800' : 'bg-gray-100'} mb-6`}>
             <Search className={`h-10 w-10 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
         </div>
         <h3 className={`text-2xl font-semibold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            {t.noArticles}
+            No Articles Found
         </h3>
         <p className={`text-lg mb-6 max-w-md mx-auto ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            {t.adjustFilters}
+            Try adjusting your filters or check back later for new content.
         </p>
         <Link 
             href="/"
             className="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200"
         >
-            {currentLanguage === 'ur' ? 'واپس ہوم پر جائیں' : 'Back to Home'}
+            Back to Home
         </Link>
     </div>
 );
