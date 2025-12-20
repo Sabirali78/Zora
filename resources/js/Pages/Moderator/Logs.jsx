@@ -33,7 +33,7 @@ export default function Logs() {
                   <td className="px-4 py-2 text-sm">{l.model_type}{l.model_id ? ` #${l.model_id}` : ''}</td>
                   <td className="px-4 py-2 text-sm">
                     {l.article ? (
-                      <Link href={route('moderator.articles.edit', { id: l.article.id })} className="text-blue-600 hover:underline">{l.article.title || `#${l.article.id}`}</Link>
+                      <Link href={route('moderator.articles.edit', { article: l.article.id })} className="text-blue-600 hover:underline">{l.article.title || `#${l.article.id}`}</Link>
                     ) : (
                       <span className="text-gray-500">—</span>
                     )}

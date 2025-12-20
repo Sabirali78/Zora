@@ -16,51 +16,77 @@ class ArticleController extends Controller
         return implode(' ', array_slice($words, 0, $limit)) . '...';
     }
 
-    private function formatArticle($article, $titleLimit = 12, $summaryLimit = 20)
+public function formatArticle($article, $titleLimit = 12, $summaryLimit = 20)
 {
-        $title = $article->title;
-        $summary = $article->summary;
+    $title = $article->title;
+    $summary = $article->summary;
     
-    // Handle image URL - ensure it's properly formatted
+    // Handle image URL
     $imageUrl = null;
     
-    if ($article->image_url) {
+    // 1. FIRST PRIORITY: Check if article has local images in images table
+    if ($article->images && $article->images->count() > 0) {
+        $firstImage = $article->images->first();
+        
+        // Debug: Log what we found
+        // \Log::info('Local image found:', ['path' => $firstImage->path]);
+        
+        if ($firstImage->path) {
+            // Handle different path formats
+            $path = $firstImage->path;
+            
+            // If it's a full path with storage/app/public
+            if (str_starts_with($path, 'storage/app/public/')) {
+                // Convert to web-accessible path
+                $relativePath = str_replace('storage/app/public/', '', $path);
+                $imageUrl = asset('storage/' . $relativePath);
+            }
+            // If it's already a web-accessible path starting with storage/
+            else if (str_starts_with($path, 'storage/')) {
+                $imageUrl = asset($path);
+            }
+            // If it's just a filename or relative path
+            else {
+                // Assume it's in articles directory
+                $imageUrl = asset('storage/articles/' . basename($path));
+            }
+        }
+    }
+    
+    // 2. SECOND PRIORITY: Use online image_url if no local images
+    if (!$imageUrl && $article->image_url) {
         // If it's already a full URL, use it
         if (filter_var($article->image_url, FILTER_VALIDATE_URL)) {
             $imageUrl = $article->image_url;
         } 
-        // If it starts with storage/, convert to full URL
+        // If it's a storage path
         else if (str_starts_with($article->image_url, 'storage/')) {
             $imageUrl = asset($article->image_url);
         }
-        // If it's just a filename/path, prepend storage path
-        else if (!empty($article->image_url)) {
-            $imageUrl = asset('storage/' . ltrim($article->image_url, '/'));
-        }
     }
     
-    // Fallback to first image from images relationship
-    if (!$imageUrl && $article->images && $article->images->count() > 0) {
-        $firstImage = $article->images->first();
-        if ($firstImage->path) {
-            // Ensure the path is properly formatted
-            $path = str_starts_with($firstImage->path, 'storage/') 
-                ? $firstImage->path 
-                : 'storage/' . ltrim($firstImage->path, '/');
-            $imageUrl = asset($path);
-        }
-    }
-    
-    // Format the images array for the frontend
+    // Format images array for frontend
     $formattedImages = [];
     if ($article->images && $article->images->count() > 0) {
         foreach ($article->images as $image) {
-            $path = str_starts_with($image->path, 'storage/') 
-                ? $image->path 
-                : 'storage/' . ltrim($image->path, '/');
+            $path = $image->path;
+            $url = null;
+            
+            // Generate URL for each image
+            if (str_starts_with($path, 'storage/app/public/')) {
+                $relativePath = str_replace('storage/app/public/', '', $path);
+                $url = asset('storage/' . $relativePath);
+            }
+            else if (str_starts_with($path, 'storage/')) {
+                $url = asset($path);
+            }
+            else {
+                $url = asset('storage/articles/' . basename($path));
+            }
+            
             $formattedImages[] = [
                 'id' => $image->id,
-                'url' => asset($path),
+                'url' => $url,
                 'path' => $image->path,
                 'original_name' => $image->original_name,
             ];
@@ -75,11 +101,11 @@ class ArticleController extends Controller
         'category' => $article->category,
         'is_featured' => $article->is_featured,
         'author' => $article->author,
-        'created_at' => $article->created_at->format('M d, Y'), // Format date
-        'images' => $formattedImages,
+        'created_at' => $article->created_at->format('M d, Y'),
+        'images' => $formattedImages,  // Array of all images
         'slug' => $article->slug,
         'tags' => $article->tags,
-        'image_url' => $imageUrl, // Use the processed image URL
+        'image_url' => $imageUrl,  // Single main image URL (either local or online)
     ];
 }
 
@@ -186,7 +212,10 @@ class ArticleController extends Controller
         // English-only listing
         $articles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
             ->latest()
-            ->get();
+            ->get()
+            ->map(function($article) {
+                return $this->formatArticle($article, 12, 20);
+            });
 
         return Inertia::render('Articles', [
             'articles' => $articles,

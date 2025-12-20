@@ -61,12 +61,46 @@ Route::prefix('moderator')->middleware('auth')->group(function () {
     Route::get('/articles/create', [ModeratorController::class, 'createArticle'])->name('moderator.articles.create');
     Route::get('/logs', [ModeratorController::class, 'logs'])->name('moderator.logs');
     Route::post('/articles', [ModeratorController::class, 'storeArticle'])->name('moderator.articles.store');
-    Route::get('/articles/{id}/edit', [ModeratorController::class, 'editArticle'])->name('moderator.articles.edit');
-    Route::post('/articles/{id}/update', [ModeratorController::class, 'updateArticle'])->name('moderator.articles.update');
-    Route::post('/articles/{id}/remove-image/{imageId}', [ModeratorController::class, 'removeImage'])->name('moderator.articles.remove_image');
+    Route::get('/articles/{article}/edit', [ModeratorController::class, 'editArticle'])->name('moderator.articles.edit');
+    Route::post('/articles/{article}/update', [ModeratorController::class, 'updateArticle'])->name('moderator.articles.update');
+    Route::post('/articles/{article}/remove-image/{image}', [ModeratorController::class, 'removeImage'])->name('moderator.articles.remove_image');
+    Route::delete('/articles/{article}', [ModeratorController::class, 'destroyArticle'])->name('moderator.articles.destroy');
 });
 
 // Catch all other routes and redirect to home (no 404 errors)
 Route::fallback(function() {
     return redirect('/');
+});
+
+// routes/web.php
+Route::get('/debug-article/{id}', function($id) {
+    $article = \App\Models\Article::with('images')->find($id);
+    
+    if (!$article) {
+        return response()->json(['error' => 'Article not found']);
+    }
+    
+    $controller = new \App\Http\Controllers\ArticleController();
+    $formatted = $controller->formatArticle($article);
+    
+    // Check storage path
+    $storagePath = null;
+    if ($article->images->count() > 0) {
+        $imagePath = $article->images->first()->path;
+        $storagePath = storage_path('app/public/' . str_replace('storage/app/public/', '', $imagePath));
+    }
+    
+    return response()->json([
+        'article_id' => $article->id,
+        'title' => $article->title,
+        'has_images_relation' => $article->images->count(),
+        'images_table_data' => $article->images,
+        'image_url_column' => $article->image_url,
+        'formatted_result' => $formatted,
+        'storage_path_exists' => $storagePath ? file_exists($storagePath) : false,
+        'storage_path' => $storagePath,
+        'web_url' => $formatted['image_url'],
+        'direct_storage_url' => $article->images->count() > 0 ? 
+            asset('storage/articles/' . basename($article->images->first()->path)) : null,
+    ]);
 });

@@ -63,11 +63,10 @@ export default function Articles() {
         return (article) => {
             if (!article) return null;
             if (article.image_url) return article.image_url;
-            if (article.images?.[0]?.path) {
-                return getImageUrl(article.images[0].path);
-            }
+            if (article.images?.[0]?.url) return article.images[0].url;
             return null;
         };
+    }, []);
     }, []);
 
     // Optimized content getter
@@ -259,6 +258,7 @@ export default function Articles() {
                                     <List className="h-4 w-4" />
                                 </button>
                             </div>
+                            <h1>All Articles</h1>
                             
                             <div className="flex items-center space-x-4">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">{t.sortBy}:</span>

@@ -11,11 +11,12 @@ const FeaturedSideArticle = ({ article, darkMode }) => {
     return url;
   };
 
+  // Prefer controller-provided `image_url`, else use `images[0].url`
   const getArticleImageUrl = (article) => {
     if (!article) return null;
     if (article.image_url) return article.image_url;
-    if (article.images && article.images.length > 0 && article.images[0].path) {
-      return getImageUrl(article.images[0].path);
+    if (article.images && article.images.length > 0 && article.images[0].url) {
+      return article.images[0].url;
     }
     return null;
   };

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Article;
-use App\Models\ArticleImage;
+use App\Models\Image;
 use App\Models\ModeratorLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -102,6 +102,25 @@ class ModeratorController extends Controller
 
         $article = Article::create($validated);
 
+        // Handle uploaded images (optional)
+        if ($request->hasFile('images')) {
+            $lastPath = null;
+            foreach ($request->file('images') as $file) {
+                $path = $file->store('articles', 'public');
+                $article->images()->create([
+                    'path' => $path,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getClientMimeType(),
+                ]);
+                $lastPath = $path;
+            }
+
+            // If no external image_url provided, set the first uploaded image as article image_url
+            if ($lastPath && empty($validated['image_url'])) {
+                $article->update(['image_url' => url('/storage/' . $lastPath)]);
+            }
+        }
+
         return redirect()->route('moderator.articles')->with('success', 'Article created');
     }
 
@@ -154,7 +173,7 @@ class ModeratorController extends Controller
             'main_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'original_author' => 'required|string', // Preserve original author
             'existing_images' => 'nullable|array',
-            'existing_images.*' => 'integer|exists:article_images,id',
+            'existing_images.*' => 'integer|exists:images,id',
         ]);
 
         // Generate slug if empty
@@ -201,7 +220,7 @@ class ModeratorController extends Controller
         // Remove images not in existing_images array
         if ($request->has('existing_images')) {
             $existingImageIds = $request->input('existing_images', []);
-            $deletedImages = ArticleImage::where('article_id', $article->id)
+            $deletedImages = Image::where('article_id', $article->id)
                 ->whereNotIn('id', $existingImageIds)
                 ->get();
             
@@ -225,7 +244,7 @@ class ModeratorController extends Controller
             ->with('success', 'Article updated successfully!');
     }
 
-    public function removeImage(Article $article, ArticleImage $image)
+    public function removeImage(Article $article, Image $image)
     {
         $moderator = Auth::user();
         
@@ -308,6 +327,37 @@ class ModeratorController extends Controller
         ModeratorLog::create($logData);
     }
 
+    // Handle storing a main image upload and update the article's image_url
+    private function handleMainImageUpload($file, Article $article)
+    {
+        $path = $file->store('articles', 'public');
+
+        $article->images()->create([
+            'path' => $path,
+            'original_name' => $file->getClientOriginalName(),
+            'mime_type' => $file->getClientMimeType(),
+        ]);
+
+        // Update article main image URL (public storage link)
+        $article->update([
+            'image_url' => url('/storage/' . $path),
+            'image_public_id' => null,
+        ]);
+    }
+
+    // Handle storing multiple additional images
+    private function handleAdditionalImages($files, Article $article)
+    {
+        foreach ($files as $file) {
+            $path = $file->store('articles', 'public');
+            $article->images()->create([
+                'path' => $path,
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getClientMimeType(),
+            ]);
+        }
+    }
+
     // Add method to show article (read-only for moderators)
     public function showArticle(Article $article)
     {
@@ -339,7 +389,7 @@ class ModeratorController extends Controller
         ];
 
         // Delete associated images from storage
-        $images = ArticleImage::where('article_id', $article->id)->get();
+        $images = Image::where('article_id', $article->id)->get();
         foreach ($images as $image) {
             if (Storage::exists('public/' . $image->path)) {
                 Storage::delete('public/' . $image->path);

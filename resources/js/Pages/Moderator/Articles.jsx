@@ -16,7 +16,7 @@ export default function ModeratorArticles({
   const handleDelete = (id) => {
     if (confirm('Are you sure you want to delete this article?')) {
       setDeletingId(id);
-      router.delete(route('moderator.articles.destroy', { id }), {
+      router.delete(route('moderator.articles.destroy', { article: id }), {
         preserveScroll: true,
         onFinish: () => setDeletingId(null),
       });
@@ -138,7 +138,7 @@ export default function ModeratorArticles({
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center gap-2">
                             <Link
-                              href={route('moderator.articles.edit', { id: article.id })}
+                              href={route('moderator.articles.edit', { article: article.id })}
                               className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
                             >
                               Edit
@@ -254,7 +254,7 @@ export default function ModeratorArticles({
                               {isMyArticle ? (
                                 <>
                                   <Link
-                                    href={route('moderator.articles.edit', { id: article.id })}
+                                    href={route('moderator.articles.edit', { article: article.id })}
                                     className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
                                   >
                                     Edit

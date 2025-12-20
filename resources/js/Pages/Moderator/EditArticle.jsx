@@ -92,7 +92,7 @@ export default function EditArticle({ article }) {
       });
     }
     
-    router.post(route('moderator.articles.update', { id: article.id }), data, {
+    router.post(route('moderator.articles.update', { article: article.id }), data, {
       forceFormData: true,
       onSuccess: () => {
         setLoading(false);
