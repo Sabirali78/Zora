@@ -412,8 +412,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Latest Writings Section */}
-        {latestWritings && latestWritings.length > 0 && (
+   {latestWritings && latestWritings.length > 0 && (
           <div className="mx-4 mb-8 sm:mx-6 lg:mx-8">
             <h2 className="mb-3 text-xl font-bold dark:text-white sm:text-2xl text-left">
               {currentLanguage === 'ur' ? 'تازہ ترین تحریریں' : 'Latest Writings'}
@@ -425,6 +424,38 @@ export default function Home() {
                   href={`/articles/${article.slug ?? article.id}`}
                   className="group overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
                 >
+                  {/* Small thumbnail like other cards */}
+                  <div className="relative overflow-hidden h-28 sm:h-32">
+                    {getArticleImageUrl(article) ? (
+                      <img
+                        src={getArticleImageUrl(article)}
+                        alt={getArticleTitle(article)}
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.parentElement.classList.add(
+                            'bg-gradient-to-br',
+                            'from-gray-200',
+                            'to-gray-300',
+                            'dark:from-gray-700',
+                            'dark:to-gray-600'
+                          );
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700">
+                        <svg
+                          className="h-6 w-6 text-gray-400 sm:h-8 sm:w-8 dark:text-gray-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="p-4">
                     <h3 className="mb-2 line-clamp-2 text-sm font-medium text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
                       {getArticleTitle(article)}
@@ -437,6 +468,7 @@ export default function Home() {
                         {formatDate(article.created_at)}
                       </span>
                     </div>
+
                     {article.summary && (
                       <p className="line-clamp-3 text-xs text-gray-600 dark:text-gray-300">
                         {article.summary}
