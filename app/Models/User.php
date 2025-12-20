@@ -20,7 +20,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'is_admin', // Add this to allow mass assignment
         'role',
     ];
 
@@ -35,25 +34,22 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'is_admin' => 'boolean', // Add this to cast is_admin as boolean
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'role' => 'string',
+    ];
 
     /**
      * Check if user is an admin
      */
     public function isAdmin(): bool
     {
-        return $this->is_admin === true;
+        return $this->role === 'admin';
     }
 
     /**
@@ -61,6 +57,6 @@ class User extends Authenticatable
      */
     public function isModerator(): bool
     {
-        return isset($this->role) && $this->role === 'moderator';
+         return $this->role === 'moderator';
     }
 }

@@ -14,11 +14,6 @@ use App\Http\Controllers\AuthController;
 Route::get('/', [ArticleController::class, 'index'])->name('home');
 Route::get('/articles', [ArticleController::class, 'list'])->name('articles.list');
 Route::get('/category/{category}', [ArticleController::class, 'byCategory'])->name('articles.category');
-Route::get('/type/{type}', [ArticleController::class, 'byType'])->name('articles.type');
-Route::get('/region/{region}', [ArticleController::class, 'byRegion'])->name('articles.region');
-Route::get('/country/{country}', [ArticleController::class, 'byCountry'])->name('articles.country');
-Route::get('/debug/articles', [ArticleController::class, 'debug'])->name('articles.debug');
-Route::get('/test/region', [ArticleController::class, 'testRegion'])->name('articles.testRegion');
 Route::get('/articles/{article}', [ArticleController::class, 'show'])->name('articles.show');
 
 Route::get('/about-us', function() {
@@ -29,16 +24,7 @@ Route::get('/privacy-policy', function () {
     return inertia('PrivacyPolicy');
 })->name('privacy.policy');
 
-// API endpoint to change language (for UI)
-Route::post('/set-language', function(Request $request) {
-    $language = $request->input('language');
-    if (!in_array($language, ['en', 'ur'])) {
-        $language = 'en';
-    }
-    \Session::put('language', $language);
-    \Cookie::queue('language', $language, 60*24*365);
-    return response()->json(['success' => true, 'language' => $language]);
-});
+
 
 // News Page Route
 Route::get('/news', [ArticleController::class, 'newsPage'])->name('articles.news');
@@ -54,7 +40,7 @@ Route::post('/register', [AuthController::class, 'register'])->name('register.su
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // ============ ADMIN ROUTES (WITH /admin/ PREFIX) ============
-Route::prefix('admin')->group(function () {
+Route::prefix('admin')->middleware('auth')->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/articles', [AdminController::class, 'allArticles'])->name('admin.articles');
     Route::get('/logs', [AdminController::class, 'adminLogs'])->name('admin.logs');
@@ -69,7 +55,7 @@ Route::prefix('admin')->group(function () {
 });
 
 // ============ MODERATOR ROUTES (WITH /moderator/ PREFIX) ============
-Route::prefix('moderator')->group(function () {
+Route::prefix('moderator')->middleware('auth')->group(function () {
     Route::get('/', [ModeratorController::class, 'dashboard'])->name('moderator.dashboard');
     Route::get('/articles', [ModeratorController::class, 'articles'])->name('moderator.articles');
     Route::get('/articles/create', [ModeratorController::class, 'createArticle'])->name('moderator.articles.create');

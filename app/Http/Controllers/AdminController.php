@@ -28,6 +28,11 @@ class AdminController extends Controller
 
     public function dashboard(Request $request)
     {
+        // Require authenticated admin user
+        if (! Auth::check() || (Auth::user()->role !== 'admin' && Auth::user()->is_admin != 1)) {
+            return redirect()->route('login');
+        }
+
         $totalArticles = Article::count();
         
         // Get article counts by category
@@ -36,14 +41,7 @@ class AdminController extends Controller
             $categoryCounts[$category] = Article::where('category', $category)->count();
         }
 
-        $adminName = null;
-        $adminId = $request->session()->get('admin_id');
-        if ($adminId) {
-            $admin = User::find($adminId);
-            if ($admin) {
-                $adminName = $admin->name;
-            }
-        }
+        $adminName = Auth::user()->name ?? null;
 
         return Inertia::render('Admin/Dashboard', [
             'totalArticles' => $totalArticles,

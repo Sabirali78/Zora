@@ -20,30 +20,34 @@ class AuthController extends Controller
         return Inertia::render('auth/Register');
     }
 
-    public function login(Request $request)
-    {
-        $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required'
+  public function login(Request $request)
+{
+    $request->validate([
+        'email'    => 'required|email',
+        'password' => 'required'
+    ]);
+
+    if (!Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
+        return back()->withErrors([
+            'email' => 'Invalid credentials'
         ]);
-
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return back()->withErrors([
-                'email' => 'Invalid credentials'
-            ]);
-        }
-
-        $user = Auth::user();
-
-        // Redirect based on role
-        if ($user->role === 'admin' || $user->is_admin == 1) {
-            return redirect()->route('admin.dashboard');
-        } elseif ($user->role === 'moderator') {
-            return redirect()->route('moderator.dashboard');
-        }
-
-        return redirect('/'); // default
     }
+
+    $request->session()->regenerate();
+    
+    $user = Auth::user();
+
+    // For Inertia, return a proper redirect response
+        if ($user->role === 'admin') {
+            // Store admin id in session for admin dashboard usage
+            $request->session()->put('admin_id', $user->id);
+            return redirect()->route('admin.dashboard');
+    } elseif ($user->role === 'moderator') {
+        return redirect()->route('moderator.dashboard');
+    }
+
+    return redirect('/');
+}
 
     public function register(Request $request)
     {
@@ -69,9 +73,15 @@ class AuthController extends Controller
         return redirect()->route('moderator.dashboard');
     }
 
-    public function logout()
+    public function logout(Request $request)
     {
         Auth::logout();
+
+        // Remove any custom session keys and invalidate session
+        $request->session()->forget('admin_id');
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
         return redirect()->route('login');
     }
 }

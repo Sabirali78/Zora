@@ -9,14 +9,122 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class ModeratorController extends Controller
 {
     // ... existing create and store methods ...
+    private function getCategories()
+    {
+        return [
+            'News',
+            'Opinion',
+            'Analysis',
+            'Mystery / Fiction',
+            'Stories / Creative',
+            'Miscellaneous',
+        ];
+    }
+    public function dashboard(Request $request)
+    {
+        $moderator = Auth::user();
+
+        if (! $moderator || $moderator->role !== 'moderator') {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Access denied. Moderator account required.'
+            ]);
+        }
+        $moderatorName = $moderator->name;
+        $moderatorArticles = Article::where('author', $moderatorName)->count();
+        $totalArticles = Article::count();
+        return inertia('Moderator/Dashboard', [
+            'moderator' => $moderator,
+            'moderatorName' => $moderatorName,
+            'totalArticles' => $totalArticles,
+            'moderatorArticles' => $moderatorArticles,
+        ]);
+    }
     
+    public function createArticle(Request $request)
+    {
+        $moderator = Auth::user();
+        if (! $moderator || $moderator->role !== 'moderator') {
+            return redirect()->route('login');
+        }
+
+        return Inertia::render('Moderator/CreateArticle', [
+            'categories' => $this->getCategories(),
+            'moderator' => $moderator,
+        ]);
+    }
+
+    public function articles(Request $request)
+    {
+        $moderator = Auth::user();
+        if (! $moderator || $moderator->role !== 'moderator') {
+            return redirect()->route('login');
+        }
+
+        $articles = Article::where('author', $moderator->name)
+            ->orderByDesc('created_at')
+            ->paginate(20);
+
+        // Also include all articles for a secondary section
+        $allArticles = Article::orderByDesc('created_at')->paginate(20);
+
+        return Inertia::render('Moderator/Articles', [
+            'articles' => $articles,
+            'allArticles' => $allArticles,
+            'moderator' => $moderator,
+        ]);
+    }
+
+    public function storeArticle(Request $request)
+    {
+        $moderator = Auth::user();
+        if (! $moderator || $moderator->role !== 'moderator') {
+            return redirect()->route('login');
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'summary' => 'required|string',
+            'content' => 'required|string',
+            'category' => 'required|string',
+            'tags' => 'nullable|string',
+            'slug' => 'nullable|string|unique:articles,slug',
+            'image_url' => 'nullable|url',
+            'image_public_id' => 'nullable|string',
+            'is_featured' => 'boolean',
+        ]);
+
+        $validated['author'] = $moderator->name;
+
+        $article = Article::create($validated);
+
+        return redirect()->route('moderator.articles')->with('success', 'Article created');
+    }
+
+    public function logs(Request $request)
+    {
+        $moderator = Auth::user();
+        if (! $moderator || $moderator->role !== 'moderator') {
+            return redirect()->route('login');
+        }
+
+        $logs = ModeratorLog::where('moderator_id', $moderator->id)
+            ->orderByDesc('created_at')
+            ->paginate(20);
+
+        return Inertia::render('Moderator/Logs', [
+            'logs' => $logs,
+            'moderator' => $moderator,
+        ]);
+    }
+
     public function editArticle(Article $article)
     {
-        $moderator = Auth::guard('moderator')->user();
+        $moderator = Auth::user();
         
         // Load article with images
         $article->load('images');
@@ -29,7 +137,7 @@ class ModeratorController extends Controller
 
     public function updateArticle(Request $request, Article $article)
     {
-        $moderator = Auth::guard('moderator')->user();
+        $moderator = Auth::user();
         
         // Validate request
         $validated = $request->validate([
@@ -113,13 +221,13 @@ class ModeratorController extends Controller
         // Log the edit action with detailed changes
         $this->logModeratorAction($moderator, 'update', $article, $changes);
 
-        return redirect()->route('moderator.articles.index')
+        return redirect()->route('moderator.articles')
             ->with('success', 'Article updated successfully!');
     }
 
     public function removeImage(Article $article, ArticleImage $image)
     {
-        $moderator = Auth::guard('moderator')->user();
+        $moderator = Auth::user();
         
         // Verify the image belongs to the article
         if ($image->article_id !== $article->id) {
@@ -203,7 +311,7 @@ class ModeratorController extends Controller
     // Add method to show article (read-only for moderators)
     public function showArticle(Article $article)
     {
-        $moderator = Auth::guard('moderator')->user();
+        $moderator = Auth::user();
         $article->load('images');
         
         return inertia('Moderator/ShowArticle', [
@@ -216,7 +324,7 @@ class ModeratorController extends Controller
     // Add method to delete article (with confirmation and logging)
     public function destroyArticle(Article $article)
     {
-        $moderator = Auth::guard('moderator')->user();
+        $moderator = Auth::user();
         
         // Check if moderator is the author
         if ($article->author !== $moderator->name) {
@@ -247,7 +355,7 @@ class ModeratorController extends Controller
             'deleted_at' => now()->toDateTimeString()
         ]);
 
-        return redirect()->route('moderator.articles.index')
+        return redirect()->route('moderator.articles')
             ->with('success', 'Article deleted successfully.');
     }
 }

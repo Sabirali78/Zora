@@ -4,6 +4,7 @@ import ModeratorNavbar from '../../components/ModeratorNavbar';
 
 export default function Logs() {
   const { logs = [], pagination = {}, moderator = null } = usePage().props;
+  const items = Array.isArray(logs) ? logs : (logs?.data || []);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
@@ -26,7 +27,7 @@ export default function Logs() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {logs.map(l => (
+              {items.map(l => (
                 <tr key={l.id}>
                   <td className="px-4 py-2 text-sm">{l.action}</td>
                   <td className="px-4 py-2 text-sm">{l.model_type}{l.model_id ? ` #${l.model_id}` : ''}</td>

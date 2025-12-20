@@ -25,7 +25,7 @@ export default function ModeratorNavbar({ moderatorName, moderator }) {
           <div className="flex items-center">
             <div className="hidden sm:flex sm:items-center sm:space-x-4">
               <div className="text-sm text-gray-700 dark:text-gray-200">{moderatorName}</div>
-              <Link href={route('moderator.logout')} method="post" as="button" className="px-3 py-1 bg-red-600 text-white rounded text-sm">Logout</Link>
+              <Link href={route('logout')} method="post" as="button" className="px-3 py-1 bg-red-600 text-white rounded text-sm">Logout</Link>
             </div>
 
             {/* Mobile menu button */}
@@ -58,7 +58,7 @@ export default function ModeratorNavbar({ moderatorName, moderator }) {
               <Link href={route('moderator.logs')} className="block text-gray-700 dark:text-gray-200">Logs</Link>
             <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
               <div className="text-sm text-gray-700 dark:text-gray-200 py-2">{moderatorName}</div>
-              <Link href={route('moderator.logout')} method="post" as="button" className="block w-full text-left px-3 py-2 bg-red-600 text-white rounded">Logout</Link>
+              <Link href={route('logout')} method="post" as="button" className="block w-full text-left px-3 py-2 bg-red-600 text-white rounded">Logout</Link>
             </div>
           </nav>
         </div>
