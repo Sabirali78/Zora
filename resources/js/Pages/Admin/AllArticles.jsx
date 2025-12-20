@@ -54,9 +54,6 @@ export default function AllArticles({ articles }) {
                     Article Title
                   </th>
                   <th scope="col" className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Language
-                  </th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Created Date
                   </th>
                   <th scope="col" className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
@@ -75,14 +72,7 @@ export default function AllArticles({ articles }) {
                         {article.title || article.title_urdu}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
-                        ${article.language === 'en' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 
-                          article.language === 'ur' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300' : 
-                          'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300'}`}>
-                        {(article.language || 'en').toUpperCase()}
-                      </span>
-                    </td>
+                   
                     <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       {article.created_at ? new Date(article.created_at).toLocaleDateString('en-US', {
                         year: 'numeric',

@@ -16,7 +16,6 @@ export default function Header({ auth }) {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
   const [mobileTrendingOpen, setMobileTrendingOpen] = useState(false);
   const [search, setSearch] = useState('');
 
@@ -66,13 +65,10 @@ const navLinks = useMemo(() => [
       if (userDropdownOpen && !event.target.closest('.user-dropdown')) {
         setUserDropdownOpen(false);
       }
-      if (languageDropdownOpen && !event.target.closest('.language-dropdown')) {
-        setLanguageDropdownOpen(false);
-      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [userDropdownOpen, languageDropdownOpen]);
+  }, [userDropdownOpen]);
 
   // Handler functions
   const toggleMobileMenu = () => {
@@ -93,9 +89,7 @@ const navLinks = useMemo(() => [
     setUserDropdownOpen(!userDropdownOpen);
   };
 
-  const toggleLanguageDropdown = () => {
-    setLanguageDropdownOpen(!languageDropdownOpen);
-  };
+  // language feature removed; no-op
 
   const isActiveLink = (url) => {
     const currentPath = window.location.pathname;
@@ -109,38 +103,7 @@ const navLinks = useMemo(() => [
   };
 
   // components/Header.jsx
-  const handleLanguageSwitch = async (newLanguage) => {
-    setLanguageDropdownOpen(false);
-    // Call backend API to set language in session/cookie
-    try {
-      // include credentials so the browser accepts Set-Cookie from the server
-      await fetch('/set-language', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-        },
-        body: JSON.stringify({ language: newLanguage })
-      });
-      // Also set cookie client-side as a fallback (path-root, 1 year)
-      document.cookie = `language=${newLanguage};path=/;max-age=${60*60*24*365}`;
-    } catch (e) {}
-    // Redirect to current URL with ?language=xx param
-    const url = new URL(window.location.href);
-    url.searchParams.set('language', newLanguage);
-    window.location.href = url.toString();
-  };
-
-  const getLanguageLabel = (lang) => {
-    switch(lang) {
-      case 'en': return 'English';
-      case 'ur': return 'اردو';
-      case 'multi': return t('multiLanguage');
-      default: return 'English';
-    }
-  };
+  // language switching removed; server now forces English
 
   return (
     <header 
@@ -176,7 +139,7 @@ const navLinks = useMemo(() => [
                 link.dropdown ? (
                   <div key={link.path} className="relative group">
                     <Link
-                      href={`${link.path}?language=${currentLanguage}`}
+                      href={link.path}
                       className={`flex items-center px-3 py-2 text-sm rounded-md font-medium ${
                         isActiveLink(link.path)
                           ? 'bg-red-600 text-white shadow-lg'
@@ -194,9 +157,9 @@ const navLinks = useMemo(() => [
                       opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200
                     `}>
                       {link.dropdown.map((region) => (
-                        <Link
-                          key={region.path}
-                          href={`${region.path}?language=${currentLanguage}`}
+                          <Link
+                            key={region.path}
+                            href={region.path}
                           className={`block px-4 py-2 text-sm ${
                             darkMode
                               ? 'text-gray-300 hover:bg-gray-700'
@@ -209,9 +172,9 @@ const navLinks = useMemo(() => [
                     </div>
                   </div>
                 ) : (
-                  <Link
-                    key={link.path}
-                    href={`${link.path}?language=${currentLanguage}`}
+                      <Link
+                        key={link.path}
+                        href={link.path}
                     className={`px-3 py-2 text-sm rounded-md font-medium ${
                       isActiveLink(link.path)
                         ? 'bg-red-600 text-white shadow-lg'
@@ -242,10 +205,10 @@ const navLinks = useMemo(() => [
                   ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}
                   opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200
                 `}>
-                  {navLinks.slice(6).map((link) => (
-                    <Link
-                      key={link.path}
-                      href={`${link.path}?language=${currentLanguage}`}
+                      {navLinks.slice(6).map((link) => (
+                          <Link
+                            key={link.path}
+                            href={link.path}
                       className={`block px-4 py-2 text-sm ${
                         darkMode
                           ? 'text-gray-300 hover:bg-gray-700'
@@ -273,67 +236,21 @@ const navLinks = useMemo(() => [
                   name="q"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder={currentLanguage === 'ur' ? 'سلگ تلاش کریں...' : 'Search...'}
+                  placeholder={'Search...'}
                   className={`border rounded px-2 py-1 text-sm ${darkMode ? 'bg-gray-800 text-white border-gray-700' : 'bg-white text-black border-gray-300'}`}
                   style={{ width: 120 }}
                 />
                 <button
                   type="submit"
                   className={`ml-2 px-2 py-1 rounded ${darkMode ? 'bg-red-700 text-white' : 'bg-red-600 text-white'}`}
-                  title={currentLanguage === 'ur' ? 'تلاش کریں' : 'Search'}
+                  title={'Search'}
                 >
                   <Search className="h-4 w-4" />
                 </button>
               </form>
 
               {/* Language Switcher */}
-              <div className="relative language-dropdown">
-                <button
-                  onClick={toggleLanguageDropdown}
-                  className={`flex items-center p-2 rounded-lg transition-colors ${
-                    darkMode
-                      ? 'hover:bg-gray-800 text-gray-300'
-                      : 'hover:bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  <Globe className="h-5 w-5" />
-                  <span className="ml-1 hidden xs:inline">
-                    {getLanguageLabel(currentLanguage)}
-                  </span>
-                  <ChevronDown className={`ml-1 h-4 w-4 ${languageDropdownOpen ? 'transform rotate-180' : ''}`} />
-                </button>
-                {languageDropdownOpen && (
-                  <div className={`absolute ${isRTL ? 'left-0 right-auto' : 'right-0 left-auto'} mt-2 w-48 rounded-md shadow-lg py-1 z-50 ${
-                    darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
-                  }`}>
-                    <button
-                      onClick={() => handleLanguageSwitch('en')}
-                      className={`flex items-center w-full px-4 py-2 text-sm text-left ${
-                        currentLanguage === 'en'
-                          ? 'bg-red-600 text-white'
-                          : darkMode
-                            ? 'text-gray-300 hover:bg-gray-700'
-                            : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      English
-                    </button>
-                    <button
-                      onClick={() => handleLanguageSwitch('ur')}
-                      className={`flex items-center w-full px-4 py-2 text-sm text-left ${
-                        currentLanguage === 'ur'
-                          ? 'bg-red-600 text-white'
-                          : darkMode
-                            ? 'text-gray-300 hover:bg-gray-700'
-                            : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      اردو
-                    </button>
-                  
-                  </div>
-                )}
-              </div>
+              {/* language selector removed - English only */}
 
               {/* Theme Toggle */}
               <button
@@ -407,7 +324,7 @@ const navLinks = useMemo(() => [
                 </div>
               ) : (
                 <Link
-                  href={`/login?language=${currentLanguage}`}
+                  href={`/login`}
                   className={`flex items-center p-2 rounded-lg transition-colors ${
                     darkMode
                       ? 'hover:bg-gray-800 text-gray-300'
@@ -476,7 +393,7 @@ const navLinks = useMemo(() => [
                           {link.dropdown.map((region) => (
                             <Link
                               key={region.path}
-                              href={`${region.path}?language=${currentLanguage}`}
+                              href={region.path}
                               className={`block px-3 py-2 text-sm ${
                                 darkMode
                                   ? 'text-gray-400 hover:text-white hover:bg-gray-700'
@@ -492,7 +409,7 @@ const navLinks = useMemo(() => [
                     ) : (
                       <Link
                         key={link.path}
-                        href={`${link.path}?language=${currentLanguage}`}
+                        href={link.path}
                         className={`block px-3 py-2 text-base font-medium ${
                           isActiveLink(link.path)
                             ? 'bg-red-600 text-white'
@@ -511,7 +428,6 @@ const navLinks = useMemo(() => [
                   {auth.user ? (
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                       {auth.user.is_admin ? (
-                        // Admin user - show Admin link
                         <Link
                           href="/admin"
                           className={`flex items-center px-3 py-2 text-base ${
@@ -525,7 +441,6 @@ const navLinks = useMemo(() => [
                           Admin
                         </Link>
                       ) : (
-                        // Regular user - show account info and logout
                         <>
                           <div className={`px-3 py-2 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             {auth.user.name || t('welcome')}
@@ -550,7 +465,7 @@ const navLinks = useMemo(() => [
                   ) : (
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                       <Link
-                        href={`/login?language=${currentLanguage}`}
+                        href={`/login`}
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center w-full px-3 py-2 text-base text-left ${
                           darkMode

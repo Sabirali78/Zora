@@ -3,23 +3,27 @@ import { Link } from '@inertiajs/react';
 // ...existing code...
 import { FaFacebook, FaTwitter, FaInstagram, FaYoutube, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
 
-import { usePage } from '@inertiajs/react';
+// No language context — app is English-only
 
 export default function Footer() {
-  const { currentLanguage = 'en' } = usePage().props;
-  const isRTL = currentLanguage === 'ur';
-  // Minimal translations for Footer
-  const translations = {
-    en: {
-      quickLinks: 'Quick Links', pakistanNews: 'Pakistan News', politics: 'Politics', sports: 'Sports', business: 'Business', tech: 'Technology', health: 'Health', privacyPolicy: 'Privacy Policy', termsOfService: 'Terms of Service', aboutUs: 'About Us', contactUs: 'Contact Us', newsletter: 'Newsletter'
-    },
-    ur: {
-      quickLinks: 'فوری روابط', pakistanNews: 'پاکستان کی خبریں', politics: 'سیاست', sports: 'کھیل', business: 'کاروبار', tech: 'ٹیکنالوجی', health: 'صحت', privacyPolicy: 'پرائیویسی پالیسی', termsOfService: 'سروس کی شرائط', aboutUs: 'ہمارے بارے میں', contactUs: 'ہم سے رابطہ کریں', newsletter: 'نیوز لیٹر'
-    }
-  };
-  const t = (key) => translations[currentLanguage]?.[key] || key;
+  // English-only static translations
+  const t = (key) => ({
+    quickLinks: 'Quick Links',
+    pakistanNews: 'Pakistan News',
+    politics: 'Politics',
+    sports: 'Sports',
+    business: 'Business',
+    tech: 'Technology',
+    health: 'Health',
+    privacyPolicy: 'Privacy Policy',
+    termsOfService: 'Terms of Service',
+    aboutUs: 'About Us',
+    contactUs: 'Contact Us',
+    newsletter: 'Newsletter'
+  }[key] || key);
+
   return (
-    <footer className={`w-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 mt-auto`} dir={isRTL ? 'rtl' : 'ltr'}>
+    <footer className={`w-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 mt-auto`}>
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* About Zora */}
@@ -31,9 +35,7 @@ export default function Footer() {
               <span className="text-xl font-bold text-white">Zora</span>
             </div>
             <p className="text-gray-900 dark:text-white">
-              {currentLanguage === 'ur'
-                ? 'آپ کا قابل اعتماد ذریعہ تازہ ترین خبریں، تجزیے اور دنیا بھر کی کہانیاں۔ انگریزی اور اردو میں درست اور بروقت معلومات فراہم کرنا۔'
-                : 'Your trusted source for the latest news, analysis, and stories from around the world. Delivering accurate and timely information in English and Urdu.'}
+              Your trusted source for the latest news, analysis, and stories from around the world. Delivering accurate and timely information in English.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-900 dark:text-white hover:text-white transition">
@@ -97,7 +99,7 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-start space-x-3">
                 <FaMapMarkerAlt className="mt-1 text-red-500" />
-                <p>{currentLanguage === 'ur' ? '123 نیوز اسٹریٹ، میڈیا سٹی، کراچی، پاکستان' : '123 News Street, Media City, Karachi, Pakistan'}</p>
+                <p>123 News Street, Media City, Karachi, Pakistan</p>
               </div>
               <div className="flex items-center space-x-3">
                 <FaPhone className="text-red-500" />
@@ -116,13 +118,11 @@ export default function Footer() {
           {/* Newsletter */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('newsletter')}</h3>
-            <p className="text-gray-400">
-              {currentLanguage === 'ur' ? 'ہماری نیوز لیٹر کے لیے سبسکرائب کریں اور روزانہ کی خبریں اپنے ان باکس میں حاصل کریں۔' : 'Subscribe to our newsletter for daily news updates delivered to your inbox.'}
-            </p>
+            <p className="text-gray-400">Subscribe to our newsletter for daily news updates delivered to your inbox.</p>
             <form className="flex flex-col space-y-3">
               <input 
                 type="email" 
-                placeholder={currentLanguage === 'ur' ? 'آپ کا ای میل ایڈریس' : 'Your email address'}
+                placeholder="Your email address"
                 className="px-4 py-2 rounded bg-gray-700 text-white dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
                 required
               />
@@ -130,7 +130,7 @@ export default function Footer() {
                 type="submit" 
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white dark:text-white rounded transition"
               >
-                {currentLanguage === 'ur' ? 'سبسکرائب کریں' : 'Subscribe'}
+                Subscribe
               </button>
             </form>
           </div>
@@ -142,17 +142,17 @@ export default function Footer() {
         {/* Bottom Footer */}
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="text-gray-900 dark:text-white text-sm">
-            &copy; {new Date().getFullYear()} Zora News. {currentLanguage === 'ur' ? 'جملہ حقوق محفوظ ہیں۔' : 'All rights reserved.'}
+            &copy; {new Date().getFullYear()} Zora News. All rights reserved.
           </div>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <Link href={`${route('privacy.policy')}?language=${currentLanguage}`} className="text-gray-900 dark:text-white hover:text-white text-sm transition">
+            <Link href={route('privacy.policy')} className="text-gray-900 dark:text-white hover:text-white text-sm transition">
               {t('privacyPolicy')}
             </Link>
-            <Link href={`${route('about.us')}?language=${currentLanguage}`} className="text-gray-900 dark:text-white hover:text-white text-sm transition">
+            <Link href={route('about.us')} className="text-gray-900 dark:text-white hover:text-white text-sm transition">
               {t('aboutUs')}
             </Link>
             <Link href="/contact" className="text-gray-900 dark:text-white hover:text-white text-sm transition">
-              {t('contact')}
+              {t('contactUs')}
             </Link>
           </div>
         </div>

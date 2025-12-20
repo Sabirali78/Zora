@@ -4,7 +4,7 @@ import { useContext, useRef, useEffect, useState } from 'react';
 import { ThemeContext } from '../contexts/ThemeContext';
 
 // Add these missing component definitions
-const FeaturedSideArticle = ({ article, currentLanguage, darkMode }) => {
+const FeaturedSideArticle = ({ article, darkMode }) => {
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
     const url = `/storage/${imagePath.replace(/^storage\//, '')}`;
@@ -22,9 +22,6 @@ const FeaturedSideArticle = ({ article, currentLanguage, darkMode }) => {
 
   const getArticleContent = (article, field) => {
     if (!article) return '';
-    if (currentLanguage === 'ur') {
-      return article[`${field}_urdu`] || article[field] || '';
-    }
     return article[field] || '';
   };
 
@@ -38,15 +35,14 @@ const FeaturedSideArticle = ({ article, currentLanguage, darkMode }) => {
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
     if (diffDays === 1) {
-      return currentLanguage === 'ur' ? 'آج' : 'Today';
+      return 'Today';
     } else if (diffDays === 2) {
-      return currentLanguage === 'ur' ? 'کل' : 'Yesterday';
+      return 'Yesterday';
     } else if (diffDays <= 7) {
-      return currentLanguage === 'ur' ? `${diffDays} دن پہلے` : `${diffDays} days ago`;
+      return `${diffDays} days ago`;
     } else {
-      return date.toLocaleDateString(currentLanguage === 'ur' ? 'ur-PK' : 'en-US');
+      return date.toLocaleDateString('en-US');
     }
   };
 
@@ -55,7 +51,7 @@ const FeaturedSideArticle = ({ article, currentLanguage, darkMode }) => {
 
   return (
     <Link
-      href={`/articles/${article.id}?language=${currentLanguage}`}
+      href={`/articles/${article.slug ?? article.id}`}
       className="group relative block overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 sm:rounded-xl"
     >
       <div className="flex h-full flex-col sm:flex-row">
@@ -99,12 +95,9 @@ const FeaturedSideArticle = ({ article, currentLanguage, darkMode }) => {
   );
 };
 
-const FeaturedListItem = ({ article, currentLanguage, darkMode }) => {
+const FeaturedListItem = ({ article, darkMode }) => {
   const getArticleContent = (article, field) => {
     if (!article) return '';
-    if (currentLanguage === 'ur') {
-      return article[`${field}_urdu`] || article[field] || '';
-    }
     return article[field] || '';
   };
 
@@ -127,19 +120,19 @@ const FeaturedListItem = ({ article, currentLanguage, darkMode }) => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
-      return currentLanguage === 'ur' ? 'آج' : 'Today';
+      return 'Today';
     } else if (diffDays === 2) {
-      return currentLanguage === 'ur' ? 'کل' : 'Yesterday';
+      return 'Yesterday';
     } else if (diffDays <= 7) {
-      return currentLanguage === 'ur' ? `${diffDays} دن پہلے` : `${diffDays} days ago`;
+      return `${diffDays} days ago`;
     } else {
-      return date.toLocaleDateString(currentLanguage === 'ur' ? 'ur-PK' : 'en-US');
+      return date.toLocaleDateString('en-US');
     }
   };
 
   return (
     <Link
-      href={`/articles/${article.id}?language=${currentLanguage}`}
+      href={`/articles/${article.slug ?? article.id}`}
       className="group flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 transition-all hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600 dark:hover:bg-gray-750 sm:p-4"
     >
       <div className="flex-1">
@@ -179,13 +172,13 @@ export default function Home() {
   const {
     heroArticle,
     categoryArticles,
-    currentLanguage: lang,
     sideFeaturedArticles,
     featuredListArticles,
     latestWritings,
     categories
   } = usePage().props;
-  const currentLanguage = lang || 'en';
+
+  const currentLanguage = 'en';
 
   const { darkMode } = useContext(ThemeContext);
   
@@ -234,10 +227,6 @@ export default function Home() {
 
   const getArticleContent = (article, field) => {
     if (!article) return '';
-    
-    if (currentLanguage === 'ur') {
-      return article[`${field}_urdu`] || article[field] || '';
-    }
     return article[field] || '';
   };
 
@@ -261,13 +250,13 @@ export default function Home() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
-      return currentLanguage === 'ur' ? 'آج' : 'Today';
+      return 'Today';
     } else if (diffDays === 2) {
-      return currentLanguage === 'ur' ? 'کل' : 'Yesterday';
+      return 'Yesterday';
     } else if (diffDays <= 7) {
-      return currentLanguage === 'ur' ? `${diffDays} دن پہلے` : `${diffDays} days ago`;
+      return `${diffDays} days ago`;
     } else {
-      return date.toLocaleDateString(currentLanguage === 'ur' ? 'ur-PK' : 'en-US');
+      return date.toLocaleDateString('en-US');
     }
   };
 
@@ -288,16 +277,6 @@ export default function Home() {
     return (
       <AppLayout currentLanguage={currentLanguage}>
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-          {/* Language Indicator */}
-          <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/90 backdrop-blur-md dark:border-gray-700 dark:bg-gray-900/90">
-            <div className="mx-auto px-2 py-1 sm:px-4 sm:py-2 lg:px-8">
-              <div className="flex items-center justify-between">
-                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-400 sm:px-3 sm:py-1 sm:text-sm">
-                  {currentLanguage === 'en' ? 'English' : currentLanguage === 'ur' ? 'اردو' : 'Multi-Language'}
-                </span>
-              </div>
-            </div>
-          </div>
           
           {/* Hero Section Skeleton */}
           <div className="px-2 py-4 sm:flex sm:items-stretch sm:justify-center sm:gap-4 sm:py-6 md:px-0">
@@ -322,16 +301,7 @@ export default function Home() {
   return (
     <AppLayout currentLanguage={currentLanguage}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        {/* Language Indicator - Mobile Optimized */}
-        <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/90 backdrop-blur-md dark:border-gray-700 dark:bg-gray-900/90">
-          <div className="mx-auto px-2 py-1 sm:px-4 sm:py-2 lg:px-8">
-            <div className="flex items-center justify-between">
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-400 sm:px-3 sm:py-1 sm:text-sm">
-                {currentLanguage === 'en' ? 'English' : currentLanguage === 'ur' ? 'اردو' : 'Multi-Language'}
-              </span>
-            </div>
-          </div>
-        </div>
+      
 
         {/* Hero Section */}
         {heroData && heroData.id && (
@@ -340,7 +310,7 @@ export default function Home() {
             <div className="w-full mb-4 sm:mb-0 sm:w-3/5 sm:min-w-[320px] sm:max-w-[600px]">
               <div className="group relative">
                 <Link
-                  href={`/articles/${heroData.id}?language=${currentLanguage}`}
+                  href={`/articles/${heroData.slug ?? heroData.id}`}
                   className="group-hover:shadow-3xl relative block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg transition-all duration-300 dark:border-gray-700 dark:bg-gray-800 sm:rounded-2xl sm:shadow-2xl"
                 >
                   <div className="relative overflow-hidden min-h-48 sm:min-h-64 md:min-h-80">
@@ -427,7 +397,7 @@ export default function Home() {
                   {currentLanguage === 'ur' ? 'فیچرڈ مضامین' : 'Featured Articles'}
                 </h2>
                 <Link
-                  href={`/category/all?filter=featured&language=${currentLanguage}`}
+                  href={`/category/all?filter=featured`}
                   className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   {currentLanguage === 'ur' ? 'سب دیکھیں' : 'View All'} →
@@ -452,7 +422,7 @@ export default function Home() {
               {latestWritings.map((article) => (
                 <Link
                   key={article.id}
-                  href={`/articles/${article.id}?language=${currentLanguage}`}
+                  href={`/articles/${article.slug ?? article.id}`}
                   className="group overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
                 >
                   <div className="p-4">
@@ -497,7 +467,7 @@ export default function Home() {
                       </h2>
                     </div>
                     <Link
-                      href={`/category/${getCategorySlug(categoryKey)}?language=${currentLanguage}`}
+                      href={`/category/${getCategorySlug(categoryKey)}`}
                       className="group flex items-center space-x-1 text-xs font-semibold text-blue-600 transition-colors hover:text-blue-700 sm:space-x-2 sm:text-sm md:text-base dark:text-blue-400 dark:hover:text-blue-300"
                     >
                       <span>{currentLanguage === 'ur' ? 'مزید' : 'More'}</span>
@@ -521,7 +491,7 @@ export default function Home() {
                           index === 0 && category.articles.length > 3 ? 'col-span-2 sm:col-span-2 lg:col-span-2' : ''
                         }`}
                       >
-                        <Link href={`/articles/${article.id}?language=${currentLanguage}`}>
+                        <Link href={`/articles/${article.slug ?? article.id}`}>
                           {/* Article Image */}
                           <div className="relative overflow-hidden">
                             {getArticleImageUrl(article) ? (

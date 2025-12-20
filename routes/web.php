@@ -82,25 +82,5 @@ Route::prefix('moderator')->group(function () {
 
 // Catch all other routes and redirect to home (no 404 errors)
 Route::fallback(function() {
-    // Try to get language from query, then raw cookie, then default
-    $request = request();
-    $language = $request->query('language');
-
-    // Prefer decrypted cookie via the framework (EncryptCookies middleware)
-    if (!$language) {
-        $cookieLang = $request->cookie('language');
-        if ($cookieLang) {
-            $language = $cookieLang;
-        }
-    }
-
-    // Only accept known language values, otherwise default to 'en'
-    $allowed = ['en', 'ur', 'multi'];
-    if (!in_array($language, $allowed)) {
-        $language = 'en';
-    }
-
-    // Set cookie for future requests (store plain language code)
-    \Cookie::queue('language', $language, 60*24*365); // 1 year
-    return redirect('/?language=' . $language);
+    return redirect('/');
 });

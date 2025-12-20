@@ -16,10 +16,10 @@ class ArticleController extends Controller
         return implode(' ', array_slice($words, 0, $limit)) . '...';
     }
 
-  private function formatArticle($article, $language, $titleLimit = 12, $summaryLimit = 20)
+    private function formatArticle($article, $titleLimit = 12, $summaryLimit = 20)
 {
-    $title = $language === 'ur' ? ($article->title_urdu ?? $article->title) : $article->title;
-    $summary = $language === 'ur' ? ($article->summary_urdu ?? $article->summary) : $article->summary;
+        $title = $article->title;
+        $summary = $article->summary;
     
     // Handle image URL - ensure it's properly formatted
     $imageUrl = null;
@@ -71,9 +71,8 @@ class ArticleController extends Controller
         'id' => $article->id,
         'title' => $this->limitWords($title, $titleLimit),
         'summary' => $this->limitWords($summary, $summaryLimit),
-        'content' => $language === 'ur' ? ($article->content_urdu ?? $article->content) : $article->content,
+        'content' => $article->content,
         'category' => $article->category,
-        'language' => $article->language,
         'is_featured' => $article->is_featured,
         'author' => $article->author,
         'created_at' => $article->created_at->format('M d, Y'), // Format date
@@ -86,34 +85,17 @@ class ArticleController extends Controller
 
   public function index(Request $request)
 {
-    // Language handling
-    $inputLang = $request->input('language');
-    $cookieLang = $request->cookie('language');
-    $isValidLang = function($lang) {
-        return $lang === 'en' || $lang === 'ur';
-    };
-    
-    if ($isValidLang($inputLang)) {
-        $language = $inputLang;
-    } elseif ($isValidLang($cookieLang)) {
-        $language = $cookieLang;
-    } else {
-        $language = 'en';
-    }
-    
-    // Set cookie if language is provided in request
-    if ($language && $request->has('language') && $isValidLang($language)) {
-        cookie()->queue('language', $language, 60 * 24 * 365);
-    }
+    // English-only app; default language is 'en'
+    $language = 'en';
 
-    // Define your six writing categories
+    // Define your six writing categories (English-only)
     $categories = [
-        'News' => $language === 'ur' ? 'خبریں' : 'News',
-        'Opinion' => $language === 'ur' ? 'رائے' : 'Opinion', 
-        'Analysis' => $language === 'ur' ? 'تجزیہ' : 'Analysis',
-        'Mystery / Fiction' => $language === 'ur' ? 'پراسرار / افسانہ' : 'Mystery / Fiction',
-        'Stories / Creative' => $language === 'ur' ? 'کہانیاں / تخلیقی' : 'Stories / Creative',
-        'Miscellaneous' => $language === 'ur' ? 'متفرق' : 'Miscellaneous'
+        'News' => 'News',
+        'Opinion' => 'Opinion', 
+        'Analysis' => 'Analysis',
+        'Mystery / Fiction' => 'Mystery / Fiction',
+        'Stories / Creative' => 'Stories / Creative',
+        'Miscellaneous' => 'Miscellaneous'
     ];
 
     // STRATEGY: Get featured articles first, then exclude them from other sections
@@ -121,26 +103,12 @@ class ArticleController extends Controller
     // Get hero article (latest featured)
     $heroArticle = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
         ->where('is_featured', true)
-        ->where(function($query) use ($language) {
-            if ($language === 'ur') {
-                $query->where('language', 'ur')->orWhere('language', 'multi');
-            } else {
-                $query->where('language', 'en')->orWhere('language', 'multi');
-            }
-        })
         ->orderBy('created_at', 'desc')
         ->first();
 
     // Get all featured articles for featured sections
     $featuredArticlesQuery = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
         ->where('is_featured', true)
-        ->where(function($query) use ($language) {
-            if ($language === 'ur') {
-                $query->where('language', 'ur')->orWhere('language', 'multi');
-            } else {
-                $query->where('language', 'en')->orWhere('language', 'multi');
-            }
-        })
         ->orderBy('created_at', 'desc');
 
     $heroArticleId = $heroArticle ? $heroArticle->id : null;
@@ -169,21 +137,14 @@ class ArticleController extends Controller
     // Get latest articles by each category (excluding featured articles)
     $categoryArticles = [];
     foreach ($categories as $categoryKey => $categoryName) {
-        $articles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
+            $articles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
             ->where('category', $categoryKey)
             ->whereNotIn('id', $allFeaturedArticleIds) // Exclude featured articles
-            ->where(function($query) use ($language) {
-                if ($language === 'ur') {
-                    $query->where('language', 'ur')->orWhere('language', 'multi');
-                } else {
-                    $query->where('language', 'en')->orWhere('language', 'multi');
-                }
-            })
             ->orderBy('created_at', 'desc')
             ->take(6)
             ->get()
-            ->map(function($article) use ($language) {
-                return $this->formatArticle($article, $language, 12, 20);
+            ->map(function($article) {
+                return $this->formatArticle($article, 12, 20);
             });
         
         if ($articles->count() > 0) {
@@ -197,95 +158,66 @@ class ArticleController extends Controller
     // Get 6 latest articles overall for "Latest Writings" section (excluding ALL featured articles)
     $latestWritings = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
         ->whereNotIn('id', $allFeaturedArticleIds) // Exclude featured articles
-        ->where(function($query) use ($language) {
-            if ($language === 'ur') {
-                $query->where('language', 'ur')->orWhere('language', 'multi');
-            } else {
-                $query->where('language', 'en')->orWhere('language', 'multi');
-            }
-        })
         ->orderBy('created_at', 'desc')
         ->take(6)
         ->get()
-        ->map(function($article) use ($language) {
-            return $this->formatArticle($article, $language, 12, 20);
+        ->map(function($article) {
+            return $this->formatArticle($article, 12, 20);
         });
 
     return Inertia::render('Home', [
-        'heroArticle' => $heroArticle ? $this->formatArticle($heroArticle, $language ?? 'en') : null,
+        'heroArticle' => $heroArticle ? $this->formatArticle($heroArticle) : null,
         'sideFeaturedArticles' => $sideFeaturedArticles->map(function($article) use ($language) {
-            return $this->formatArticle($article, $language, 12, 20);
+            return $this->formatArticle($article, 12, 20);
         }),
         'categoryArticles' => $categoryArticles,
-        'featuredListArticles' => $featuredListArticles->map(function($article) use ($language) {
-            return $this->formatArticle($article, $language, 12, 20);
+        'featuredListArticles' => $featuredListArticles->map(function($article) {
+            return $this->formatArticle($article, 12, 20);
         }),
         'latestWritings' => $latestWritings,
         'categories' => $categories,
         'darkMode' => false,
-        'currentLanguage' => $language ?? 'en',
+        'currentLanguage' => 'en',
     ]);
 }
 
     public function list(Request $request)
     {
-        $language = $request->input('language', $request->cookie('language', 'en'));
-        
-        // Set cookie if language is provided in request
-        if ($request->has('language')) {
-            cookie()->queue('language', $language, 60 * 24 * 365);
-        }
-        
-        // Get all articles based on language preference
+        // English-only listing
         $articles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
-            ->where(function($query) use ($language) {
-                if ($language === 'ur') {
-                    $query->where('language', 'ur')->orWhere('language', 'multi');
-                } else {
-                    $query->where('language', 'en')->orWhere('language', 'multi');
-                }
-            })
             ->latest()
             ->get();
 
         return Inertia::render('Articles', [
             'articles' => $articles,
             'darkMode' => false,
-            'currentLanguage' => $language,
+            'currentLanguage' => 'en',
         ], [
-            'currentLanguage' => $language,
+            'currentLanguage' => 'en',
         ]);
     }
 
     public function show(Article $article, Request $request)
     {
-        $language = $request->input('language', $request->cookie('language', 'en'));
-        
-        // Set cookie if language is provided in request
-        if ($request->has('language')) {
-            cookie()->queue('language', $language, 60 * 24 * 365);
-        }
+        // English-only
+        $language = 'en';
         
         // Load the article with its images (latest first)
         $article->load(['images' => function($q) { $q->orderBy('id', 'desc'); }]);
 
         return Inertia::render('Article', [
-            'article' => $this->formatArticle($article, $language),
+            'article' => $this->formatArticle($article),
             'darkMode' => false,
-            'currentLanguage' => $language,
+            'currentLanguage' => 'en',
         ], [
-            'currentLanguage' => $language,
+            'currentLanguage' => 'en',
         ]);
     }
 
     public function byCategory(Request $request, $category)
     {
-        $language = $request->input('language', $request->cookie('language', 'en'));
-        
-        // Set cookie if language is provided in request
-        if ($request->has('language')) {
-            cookie()->queue('language', $language, 60 * 24 * 365);
-        }
+        // English-only
+        $language = 'en';
         
         // Map URL slugs to database category values
         $categoryMap = [
@@ -304,41 +236,33 @@ class ArticleController extends Controller
         
         $articles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
             ->where('category', $dbCategory)
-            ->where(function($query) use ($language) {
-                if ($language === 'ur') {
-                    $query->where('language', 'ur')->orWhere('language', 'multi');
-                } else {
-                    $query->where('language', 'en')->orWhere('language', 'multi');
-                }
-            })
             ->latest()
             ->get();
 
-        // Get category display name
+        // Category display names (English-only)
         $categoryNames = [
-            'News' => $language === 'ur' ? 'خبریں' : 'News',
-            'Opinion' => $language === 'ur' ? 'رائے' : 'Opinion',
-            'Analysis' => $language === 'ur' ? 'تجزیہ' : 'Analysis',
-            'Mystery / Fiction' => $language === 'ur' ? 'پراسرار / افسانہ' : 'Mystery / Fiction',
-            'Stories / Creative' => $language === 'ur' ? 'کہانیاں / تخلیقی' : 'Stories / Creative',
-            'Miscellaneous' => $language === 'ur' ? 'متفرق' : 'Miscellaneous'
+            'News' => 'News',
+            'Opinion' => 'Opinion',
+            'Analysis' => 'Analysis',
+            'Mystery / Fiction' => 'Mystery / Fiction',
+            'Stories / Creative' => 'Stories / Creative',
+            'Miscellaneous' => 'Miscellaneous'
         ];
 
         return Inertia::render('Articles', [
             'articles' => $articles,
             'darkMode' => false,
-            'currentLanguage' => $language,
+            'currentLanguage' => 'en',
             'filter' => 'category',
             'filterValue' => $dbCategory,
             'categoryName' => $categoryNames[$dbCategory] ?? $dbCategory,
         ], [
-            'currentLanguage' => $language,
+            'currentLanguage' => 'en',
         ]);
     }
 
     public function search(Request $request)
     {
-        $language = $request->input('language', $request->cookie('language', 'en'));
         $query = $request->input('q', '');
 
         $articles = collect();
@@ -346,23 +270,12 @@ class ArticleController extends Controller
 
         if ($query) {
             // Search for articles where query matches slug, title, summary, content, or tags
-            $titleField = $language === 'ur' ? 'title_urdu' : 'title';
-            $summaryField = $language === 'ur' ? 'summary_urdu' : 'summary';
-            $contentField = $language === 'ur' ? 'content_urdu' : 'content';
-            
             $articles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
-                ->where(function($q) use ($language) {
-                    if ($language === 'ur') {
-                        $q->where('language', 'ur')->orWhere('language', 'multi');
-                    } else {
-                        $q->where('language', 'en')->orWhere('language', 'multi');
-                    }
-                })
-                ->where(function($q) use ($query, $titleField, $summaryField, $contentField) {
+                ->where(function($q) use ($query) {
                     $q->where('slug', 'LIKE', '%' . $query . '%')
-                      ->orWhere($titleField, 'LIKE', '%' . $query . '%')
-                      ->orWhere($summaryField, 'LIKE', '%' . $query . '%')
-                      ->orWhere($contentField, 'LIKE', '%' . $query . '%')
+                      ->orWhere('title', 'LIKE', '%' . $query . '%')
+                      ->orWhere('summary', 'LIKE', '%' . $query . '%')
+                      ->orWhere('content', 'LIKE', '%' . $query . '%')
                       ->orWhere('tags', 'LIKE', '%' . $query . '%');
                 })
                 ->orderBy('created_at', 'desc')
@@ -374,16 +287,9 @@ class ArticleController extends Controller
         // Related articles: 6 from same category as first search result
         $relatedArticles = collect();
         if ($mainArticle) {
-            $relatedArticles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
+                $relatedArticles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
                 ->where('category', $mainArticle->category)
                 ->where('id', '!=', $mainArticle->id)
-                ->where(function($query) use ($language) {
-                    if ($language === 'ur') {
-                        $query->where('language', 'ur')->orWhere('language', 'multi');
-                    } else {
-                        $query->where('language', 'en')->orWhere('language', 'multi');
-                    }
-                })
                 ->orderBy('created_at', 'desc')
                 ->take(6)
                 ->get();
@@ -396,13 +302,6 @@ class ArticleController extends Controller
             
             $needed = 6 - $relatedArticles->count();
             $latestFill = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
-                ->where(function($query) use ($language) {
-                    if ($language === 'ur') {
-                        $query->where('language', 'ur')->orWhere('language', 'multi');
-                    } else {
-                        $query->where('language', 'en')->orWhere('language', 'multi');
-                    }
-                })
                 ->whereNotIn('id', $excludeIds)
                 ->orderBy('created_at', 'desc')
                 ->take($needed)
@@ -417,23 +316,20 @@ class ArticleController extends Controller
 
         return Inertia::render('SearchResults', [
             'query' => $query,
-            'articles' => $articles->map(function($article) use ($language) {
-                return $this->formatArticle($article, $language, 12, 20);
+            'articles' => $articles->map(function($article) {
+                return $this->formatArticle($article, 12, 20);
             }),
             'relatedArticles' => $relatedArticles,
             'darkMode' => false,
-            'currentLanguage' => $language,
+            'currentLanguage' => 'en',
         ]);
     }
 
     // News page for only news articles
     public function newsPage(Request $request)
     {
-        $language = $request->input('language', $request->cookie('language', 'en'));
-        if ($request->has('language')) {
-            cookie()->queue('language', $language, 60 * 24 * 365);
-        }
-
+        // English-only
+        $language = 'en';
         // Get top stories (6 most recent featured news articles)
         $topStories = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
             ->where('category', 'News')

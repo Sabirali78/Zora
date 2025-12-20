@@ -1,42 +1,32 @@
 import React, { useState, useContext } from 'react';
-import { router } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { ThemeContext } from '../../contexts/ThemeContext';
 import AppLayout from '@/layouts/app-layout';
 
 export default function Login() {
-  const [form, setForm] = useState({
-    email: '',
-    password: '',
-    remember: false
-  });   
+  const form = useForm({ email: '', password: '', remember: false });
   const [errors, setErrors] = useState({});
-  const [processing, setProcessing] = useState(false);
+  const processing = form.processing;
   const { darkMode } = useContext(ThemeContext);
 
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
-    setForm(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    form.setData(name, type === 'checkbox' ? checked : value);
   };
 
   const handleSubmit = e => {
     e.preventDefault();
-    setProcessing(true);
+    // debug
+    // console.log('Submitting login form', form.data());
     setErrors({});
-    
-    router.post('/auth/login', form, {
+    form.post('/login', {
       preserveScroll: true,
       preserveState: true,
       onError: (err) => {
-        setProcessing(false);
         setErrors(err);
       },
       onSuccess: () => {
-        setProcessing(false);
-        // Inertia will handle the redirect automatically
-        // because the backend returns a redirect
+        // success — backend redirect should apply
       }
     });
   };
@@ -64,7 +54,7 @@ export default function Login() {
             <input
               name="email"
               type="email"
-              value={form.email}
+              value={form.data.email}
               onChange={handleChange}
               className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} ${errors.email ? 'border-red-500' : ''}`}
               required
@@ -83,7 +73,7 @@ export default function Login() {
             <input
               name="password"
               type="password"
-              value={form.password}
+              value={form.data.password}
               onChange={handleChange}
               className={`w-full px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} ${errors.password ? 'border-red-500' : ''}`}
               required
@@ -99,7 +89,7 @@ export default function Login() {
             <input
               name="remember"
               type="checkbox"
-              checked={form.remember}
+              checked={form.data.remember}
               onChange={handleChange}
               className="h-4 w-4 text-blue-600 rounded"
               disabled={processing}
@@ -120,7 +110,7 @@ export default function Login() {
           {/* Register link */}
           <div className="text-center mt-4">
             <a 
-              href="/moderator/register" 
+              href="/register" 
               className={`text-sm ${darkMode ? 'text-blue-300 hover:text-blue-200' : 'text-blue-600 hover:text-blue-800'}`}
             >
               Don't have an account? Register here

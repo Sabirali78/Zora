@@ -41,13 +41,9 @@ export default function Articles() {
 
     return (
         <AppLayout 
-            darkMode={darkMode} 
-            currentLanguage={currentLanguage}
-            onLanguageSwitch={() => {
-                const newLanguage = currentLanguage === 'en' ? 'ur' : 'en';
-                router.get('/', { language: newLanguage });
-            }}
-        >
+                darkMode={darkMode} 
+                currentLanguage={currentLanguage}
+            >
             <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
                 
                 {/* Page Header */}
@@ -83,7 +79,7 @@ export default function Articles() {
                     <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-6'}>
                         {filteredArticles.map(article => (
                             <div key={article.id} className='bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow duration-300 overflow-hidden'>
-                                <Link href={`/articles/${article.slug ?? article.id}?language=${currentLanguage}`} className="block">
+                                <Link href={`/articles/${article.slug ?? article.id}`} className="block">
                                     {getArticleImageUrl(article) && (
                                         <div className={`relative overflow-hidden ${viewMode === 'grid' ? 'h-48' : 'h-32'}`}>
                                             <img

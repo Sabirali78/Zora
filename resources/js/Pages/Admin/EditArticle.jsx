@@ -3,13 +3,9 @@ import { router, usePage } from '@inertiajs/react';
 import AdminNavbar from '@/components/AdminNavbar';
 
 const initialForm = (article) => ({
-  language: article.language || 'en',
   title: article.title || '',
   summary: article.summary || '',
   content: article.content || '',
-  title_urdu: article.title_urdu || '',
-  summary_urdu: article.summary_urdu || '',
-  content_urdu: article.content_urdu || '',
   category: article.category || '',
   tags: article.tags || '',
   images: [], // for new uploads
@@ -48,11 +44,6 @@ export default function EditArticle({ article }) {
     } else {
       setForm(f => ({ ...f, [name]: value }));
     }
-  };
-
-  const handleLanguageChange = e => {
-    const lang = e.target.value;
-    setForm(f => ({ ...f, language: lang }));
   };
 
   const handleSubmit = e => {
@@ -96,16 +87,15 @@ export default function EditArticle({ article }) {
     });
   };
 
-  // Category options (updated to match your table structure)
-// In EditArticle.jsx
-const categoryOptions = [
-  { value: 'News', label: 'News' },
-  { value: 'Opinion', label: 'Opinion' },
-  { value: 'Analysis', label: 'Analysis' },
-  { value: 'Mystery / Fiction', label: 'Mystery / Fiction' },
-  { value: 'Stories / Creative', label: 'Stories / Creative' },
-  { value: 'Miscellaneous', label: 'Miscellaneous' },
-];
+  // Category options
+  const categoryOptions = [
+    { value: 'News', label: 'News' },
+    { value: 'Opinion', label: 'Opinion' },
+    { value: 'Analysis', label: 'Analysis' },
+    { value: 'Mystery / Fiction', label: 'Mystery / Fiction' },
+    { value: 'Stories / Creative', label: 'Stories / Creative' },
+    { value: 'Miscellaneous', label: 'Miscellaneous' },
+  ];
 
   // Remove image handler
   function handleRemoveImage(imageId) {
@@ -132,90 +122,43 @@ const categoryOptions = [
             </div>
           )}
           
-          {/* Language Selection */}
+          {/* Title Field */}
           <div className="mb-2">
-            <label className="block mb-1 font-medium">Language</label>
-            <select 
-              name="language" 
-              value={form.language} 
-              onChange={handleLanguageChange} 
-              className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600"
-            >
-              <option value="en">English</option>
-              <option value="ur">Urdu</option>
-              <option value="multi">Multi-language</option>
-            </select>
+            <label className="block mb-1 font-medium">Title</label>
+            <input 
+              name="title" 
+              value={form.title} 
+              onChange={handleChange} 
+              className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" 
+              required
+            />
           </div>
-          
-          {/* English Fields */}
-          {(form.language === 'en' || form.language === 'multi') && (
-            <div className="space-y-2">
-              <label className="block mb-1 font-medium">Title (English)</label>
-              <input 
-                name="title" 
-                value={form.title} 
-                onChange={handleChange} 
-                className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" 
-                required={form.language !== 'ur'} 
-                disabled={form.language === 'ur'} 
-              />
-              <label className="block mb-1 font-medium">Summary (English)</label>
-              <textarea 
-                name="summary" 
-                value={form.summary} 
-                onChange={handleChange} 
-                className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" 
-                rows={2} 
-                required={form.language !== 'ur'} 
-                disabled={form.language === 'ur'} 
-              />
-              <label className="block mb-1 font-medium">Content (English)</label>
-              <textarea 
-                name="content" 
-                value={form.content} 
-                onChange={handleChange} 
-                className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" 
-                rows={4} 
-                required={form.language !== 'ur'} 
-                disabled={form.language === 'ur'} 
-              />
-            </div>
-          )}
-          
-          {/* Urdu Fields */}
-          {(form.language === 'ur' || form.language === 'multi') && (
-            <div className="space-y-2">
-              <label className="block mb-1 font-medium">Title (Urdu)</label>
-              <input 
-                name="title_urdu" 
-                value={form.title_urdu} 
-                onChange={handleChange} 
-                className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" 
-                required={form.language !== 'en'} 
-                disabled={form.language === 'en'} 
-              />
-              <label className="block mb-1 font-medium">Summary (Urdu)</label>
-              <textarea 
-                name="summary_urdu" 
-                value={form.summary_urdu} 
-                onChange={handleChange} 
-                className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" 
-                rows={2} 
-                required={form.language !== 'en'} 
-                disabled={form.language === 'en'} 
-              />
-              <label className="block mb-1 font-medium">Content (Urdu)</label>
-              <textarea 
-                name="content_urdu" 
-                value={form.content_urdu} 
-                onChange={handleChange} 
-                className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" 
-                rows={4} 
-                required={form.language !== 'en'} 
-                disabled={form.language === 'en'} 
-              />
-            </div>
-          )}
+
+          {/* Summary Field */}
+          <div className="mb-2">
+            <label className="block mb-1 font-medium">Summary</label>
+            <textarea 
+              name="summary" 
+              value={form.summary} 
+              onChange={handleChange} 
+              className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" 
+              rows={2} 
+              required
+            />
+          </div>
+
+          {/* Content Field */}
+          <div className="mb-2">
+            <label className="block mb-1 font-medium">Content</label>
+            <textarea 
+              name="content" 
+              value={form.content} 
+              onChange={handleChange} 
+              className="w-full px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" 
+              rows={4} 
+              required
+            />
+          </div>
           
           {/* Other Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

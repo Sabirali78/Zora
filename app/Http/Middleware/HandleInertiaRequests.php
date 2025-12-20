@@ -55,7 +55,8 @@ class HandleInertiaRequests extends Middleware
                 ];
             },
             'sidebarOpen' => !$request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'currentLanguage' => $request->input('language', $request->cookie('language', 'en')),
+            // Language removed: always use English
+            'currentLanguage' => 'en',
         ];
     }
 

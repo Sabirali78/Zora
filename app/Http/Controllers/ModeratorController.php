@@ -2,343 +2,252 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\Auth;
 use App\Models\Article;
+use App\Models\ArticleImage;
 use App\Models\ModeratorLog;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use App\Models\Image;
 
 class ModeratorController extends Controller
 {
-    /** Show a basic moderator dashboard */
-    public function dashboard(Request $request)
+    // ... existing create and store methods ...
+    
+    public function editArticle(Article $article)
     {
-        $moderatorName = null;
-        $totalArticles = 0;
-        $englishArticles = 0;
-        $urduArticles = 0;
-        $multiLangArticles = 0;
-
-        if (Auth::check()) {
-            $moderator = Auth::user();
-            $moderatorName = $moderator->name;
-
-            $totalArticles = Article::where('author', $moderatorName)->count();
-            $englishArticles = Article::where('author', $moderatorName)->where('language', 'en')->count();
-            $urduArticles = Article::where('author', $moderatorName)->where('language', 'ur')->count();
-            $multiLangArticles = Article::where('author', $moderatorName)->where('language', 'multi')->count();
-        }
-
-        return Inertia::render('Moderator/Dashboard', [
-            'moderatorName' => $moderatorName,
-            'moderator' => $moderator ? [
-                'id' => $moderator->id,
-                'name' => $moderator->name,
-                'email' => $moderator->email,
-                'email_verified_at' => $moderator->email_verified_at,
-            ] : null,
-            'totalArticles' => $totalArticles,
-            'englishArticles' => $englishArticles,
-            'urduArticles' => $urduArticles,
-            'multiLangArticles' => $multiLangArticles,
+        $moderator = Auth::guard('moderator')->user();
+        
+        // Load article with images
+        $article->load('images');
+        
+        return inertia('Moderator/EditArticle', [
+            'moderator' => $moderator,
+            'article' => $article
         ]);
     }
 
-    /** List moderator's articles */
-    public function articles(Request $request)
+    public function updateArticle(Request $request, Article $article)
     {
-        $moderator = Auth::user();
-        $query = Article::where('author', $moderator->name)->orderByDesc('created_at');
-        $articles = $query->get();
-
-        return Inertia::render('Moderator/Articles', [
-            'articles' => $articles,
-            'moderatorName' => $moderator->name,
-            'moderator' => [
-                'id' => $moderator->id,
-                'name' => $moderator->name,
-                'email' => $moderator->email,
-                'email_verified_at' => $moderator->email_verified_at,
-            ],
-        ]);
-    }
-
-    /** Show create article form for moderators */
-    public function createArticle(Request $request)
-    {
-        $moderatorName = null;
-        if (Auth::check()) {
-            $moderatorName = Auth::user()->name;
-        }
-        // If not verified, don't allow creating articles
-        $moderator = Auth::user();
-        $isVerified = $moderator && $moderator->email_verified_at !== null;
-        if (!$isVerified) {
-            // Redirect to dashboard with message
-            return redirect()->route('moderator.dashboard')->with('error', 'You must verify your email before creating articles.');
-        }
-        return Inertia::render('Moderator/CreateArticle', [
-            'moderatorName' => $moderatorName,
-            'moderator' => [
-                'id' => $moderator->id,
-                'name' => $moderator->name,
-                'email' => $moderator->email,
-                'email_verified_at' => $moderator->email_verified_at,
-            ],
-        ]);
-    }
-
-    /** Store article created by moderator */
-    public function storeArticle(Request $request)
-    {
-        $moderator = Auth::user();
-        if (!$moderator || !$moderator->email_verified_at) {
-            return redirect()->route('moderator.dashboard')->with('error', 'You must verify your email before creating articles.');
-        }
-
+        $moderator = Auth::guard('moderator')->user();
+        
+        // Validate request
         $validated = $request->validate([
-            'language' => 'required|in:en,ur,multi',
-            'title' => 'required_if:language,en,required_if:language,multi',
-            'summary' => 'required_if:language,en,required_if:language,multi',
-            'content' => 'required_if:language,en,required_if:language,multi',
-            'title_urdu' => 'required_if:language,ur,required_if:language,multi',
-            'summary_urdu' => 'required_if:language,ur,required_if:language,multi',
-            'content_urdu' => 'required_if:language,ur,required_if:language,multi',
-            'category' => 'required',
-            'type' => 'required',
+            'title' => 'required|string|max:255',
+            'summary' => 'required|string',
+            'content' => 'required|string',
+            'category' => 'required|in:News,Opinion,Analysis,Mystery / Fiction,Stories / Creative,Miscellaneous',
+            'tags' => 'nullable|string',
+            'slug' => 'nullable|string|unique:articles,slug,' . $article->id,
+            'image_url' => 'nullable|url',
+            'image_public_id' => 'nullable|string',
+            'is_featured' => 'boolean',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'main_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'original_author' => 'required|string', // Preserve original author
+            'existing_images' => 'nullable|array',
+            'existing_images.*' => 'integer|exists:article_images,id',
         ]);
 
-        $article = new Article();
-        $article->fill([
-            'language' => $validated['language'],
-            'title' => $validated['title'] ?? null,
-            'summary' => $validated['summary'] ?? null,
-            'content' => $validated['content'] ?? null,
-            'title_urdu' => $validated['title_urdu'] ?? null,
-            'summary_urdu' => $validated['summary_urdu'] ?? null,
-            'content_urdu' => $validated['content_urdu'] ?? null,
-            'category' => $validated['category'],
-            'type' => $validated['type'],
-            'author' => $moderator->name,
-        ]);
-
-        $article->slug = $request->input('slug') ?? \Str::slug($article->title ?? $article->title_urdu ?? uniqid());
-        // Ensure unique slug
-        $originalSlug = $article->slug;
-        $counter = 1;
-        while (Article::where('slug', $article->slug)->exists()) {
-            $article->slug = $originalSlug . '-' . $counter++;
+        // Generate slug if empty
+        if (empty($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['title']) . '-' . Str::random(6);
         }
 
-        $article->save();
+        // Ensure slug is unique (excluding current article)
+        $validated['slug'] = $this->makeUniqueSlug($validated['slug'], $article->id);
 
-        // Log moderator action
-        $counts = ['created_articles_en' => 0, 'created_articles_ur' => 0, 'created_articles_multi' => 0];
-        if ($article->language === 'en') $counts['created_articles_en'] = 1;
-        if ($article->language === 'ur') $counts['created_articles_ur'] = 1;
-        if ($article->language === 'multi') $counts['created_articles_multi'] = 1;
+        // Keep original author (important for moderators editing others' articles)
+        $validated['author'] = $request->input('original_author');
 
-        ModeratorLog::create(array_merge([
-            'moderator_id' => $moderator->id,
-            'action' => 'create',
-            'model_type' => 'Article',
-            'model_id' => $article->id,
-            'details' => 'Moderator created an article',
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ], $counts));
+        // Store changes for logging
+        $originalData = $article->toArray();
+        $changes = [];
 
-        return redirect()->route('moderator.articles')->with('success', 'Article created');
-    }
-
-    /** Show edit form for a moderator's article (only author may edit) */
-    public function editArticle(Request $request, $id)
-    {
-        $article = Article::with('images')->findOrFail($id);
-        $moderator = Auth::user();
-        // prevent unverified moderators
-        if (!$moderator || !$moderator->email_verified_at) {
-            abort(403);
-        }
-        if (!$moderator || $article->author !== $moderator->name) {
-            abort(403);
-        }
-        return Inertia::render('Moderator/EditArticle', [
-            'article' => $article,
-            'moderatorName' => $moderator->name,
-            'moderator' => [
-                'id' => $moderator->id,
-                'name' => $moderator->name,
-                'email' => $moderator->email,
-                'email_verified_at' => $moderator->email_verified_at,
-            ],
-        ]);
-    }
-
-    /** Update moderator article (only author) */
-    public function updateArticle(Request $request, $id)
-    {
-        $article = Article::findOrFail($id);
-        $moderator = Auth::user();
-        if (!$moderator || !$moderator->email_verified_at) {
-            abort(403);
-        }
-        if (!$moderator || $article->author !== $moderator->name) {
-            abort(403);
-        }
-
-        $validated = $request->validate([
-            'language' => 'required|in:en,ur,multi',
-            'title' => 'required_if:language,en,required_if:language,multi',
-            'summary' => 'required_if:language,en,required_if:language,multi',
-            'content' => 'required_if:language,en,required_if:language,multi',
-            'title_urdu' => 'required_if:language,ur,required_if:language,multi',
-            'summary_urdu' => 'required_if:language,ur,required_if:language,multi',
-            'content_urdu' => 'required_if:language,ur,required_if:language,multi',
-            'category' => 'required',
-            'type' => 'required',
-            'slug' => 'nullable|string',
-        ]);
-
-        $article->language = $validated['language'];
-        $article->title = $validated['title'] ?? null;
-        $article->summary = $validated['summary'] ?? null;
-        $article->content = $validated['content'] ?? null;
-        $article->title_urdu = $validated['title_urdu'] ?? null;
-        $article->summary_urdu = $validated['summary_urdu'] ?? null;
-        $article->content_urdu = $validated['content_urdu'] ?? null;
-        $article->category = $validated['category'];
-        $article->type = $validated['type'];
-        $article->tags = $request->input('tags');
-        $article->region = $request->input('region');
-        $article->country = $request->input('country');
-
-        $article->is_featured = $request->boolean('is_featured');
-        $article->is_trending = $request->boolean('is_trending');
-        $article->is_breaking = $request->boolean('is_breaking');
-        $article->is_top_story = $request->boolean('is_top_story');
-        $article->show_in_section = $request->boolean('show_in_section');
-        $article->section_priority = $request->input('section_priority');
-
-        // handle slug
-        if ($request->filled('slug')) {
-            $slug = $request->input('slug');
-        } else {
-            $slug = \Str::slug($article->title ?? $article->title_urdu ?? uniqid());
-        }
-        $originalSlug = $slug;
-        $counter = 1;
-        while (Article::where('slug', $slug)->where('id', '!=', $article->id)->exists()) {
-            $slug = $originalSlug . '-' . $counter++;
-        }
-        $article->slug = $slug;
-
-        $article->save();
-
-        // handle uploaded images
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $file) {
-                $path = $file->store('articles', 'public');
-                $article->images()->create([
-                    'path' => $path,
-                    'original_name' => $file->getClientOriginalName(),
-                    'mime_type' => $file->getClientMimeType(),
-                ]);
+        // Track changes
+        foreach ($validated as $key => $value) {
+            if (isset($article->$key) && $article->$key != $value) {
+                $changes[$key] = [
+                    'from' => $article->$key,
+                    'to' => $value
+                ];
             }
         }
 
-        // Log moderator update
-        ModeratorLog::create([
-            'moderator_id' => $moderator->id,
-            'action' => 'update',
-            'model_type' => 'Article',
-            'model_id' => $article->id,
-            'details' => 'Moderator updated an article',
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
+        // Update article
+        $article->update($validated);
 
-        return redirect()->route('moderator.articles')->with('success', 'Article updated');
+        // Handle main image upload if provided
+        if ($request->hasFile('main_image')) {
+            $this->handleMainImageUpload($request->file('main_image'), $article);
+            $changes['main_image'] = ['from' => 'old image', 'to' => 'new image uploaded'];
+        }
+
+        // Handle additional images
+        if ($request->hasFile('images')) {
+            $this->handleAdditionalImages($request->file('images'), $article);
+            $count = count($request->file('images'));
+            $changes['additional_images'] = ['added' => $count . ' new images'];
+        }
+
+        // Remove images not in existing_images array
+        if ($request->has('existing_images')) {
+            $existingImageIds = $request->input('existing_images', []);
+            $deletedImages = ArticleImage::where('article_id', $article->id)
+                ->whereNotIn('id', $existingImageIds)
+                ->get();
+            
+            foreach ($deletedImages as $image) {
+                // Delete from storage
+                if (Storage::exists('public/' . $image->path)) {
+                    Storage::delete('public/' . $image->path);
+                }
+                $image->delete();
+            }
+            
+            if ($deletedImages->count() > 0) {
+                $changes['removed_images'] = ['removed' => $deletedImages->count() . ' images'];
+            }
+        }
+
+        // Log the edit action with detailed changes
+        $this->logModeratorAction($moderator, 'update', $article, $changes);
+
+        return redirect()->route('moderator.articles.index')
+            ->with('success', 'Article updated successfully!');
     }
 
-    /** Remove an image from moderator's article */
-    public function removeImage(Request $request, $id, $imageId)
+    public function removeImage(Article $article, ArticleImage $image)
     {
-        $article = Article::findOrFail($id);
-        $moderator = Auth::user();
-        if (!$moderator || !$moderator->email_verified_at) {
-            abort(403);
-        }
-        if (!$moderator || $article->author !== $moderator->name) {
-            abort(403);
-        }
-
-        $image = Image::findOrFail($imageId);
+        $moderator = Auth::guard('moderator')->user();
+        
+        // Verify the image belongs to the article
         if ($image->article_id !== $article->id) {
-            abort(404);
+            abort(403, 'Unauthorized action.');
         }
 
-        // delete file from storage
-        if ($image->path && Storage::disk('public')->exists($image->path)) {
-            Storage::disk('public')->delete($image->path);
+        // Delete from storage
+        if (Storage::exists('public/' . $image->path)) {
+            Storage::delete('public/' . $image->path);
         }
+
+        // Delete from database
         $image->delete();
 
-        return redirect()->back()->with('success', 'Image removed');
+        // Log the action
+        $this->logModeratorAction($moderator, 'delete_image', $article, [
+            'image_id' => $image->id,
+            'image_path' => $image->path
+        ]);
+
+        return back()->with('success', 'Image removed successfully.');
     }
 
-    /** Show moderator's own logs page (create/update/delete only) */
-    public function logs(Request $request)
+    private function makeUniqueSlug($slug, $excludeId = null)
     {
-        $moderator = Auth::user();
-        if (!$moderator) {
-            // Redirect to unified admin login page
-            return redirect(route('admin.login'));
-        }
-        $query = ModeratorLog::where('moderator_id', $moderator->id)
-            ->whereIn('action', ['create', 'update', 'delete'])
-            ->orderByDesc('created_at');
-        $perPage = 20;
-        $logs = $query->paginate($perPage)->withQueryString();
-        $pagination = [
-            'current_page' => $logs->currentPage(),
-            'last_page' => $logs->lastPage(),
-            'per_page' => $logs->perPage(),
-            'total' => $logs->total(),
-            'next_page_url' => $logs->nextPageUrl(),
-            'prev_page_url' => $logs->previousPageUrl(),
-        ];
-        $items = collect($logs->items());
-        $articleIds = $items->filter(function ($l) { return $l->model_type === 'Article' && $l->model_id; })->pluck('model_id')->unique()->values()->all();
-        $articles = [];
-        if (!empty($articleIds)) {
-            $articles = Article::whereIn('id', $articleIds)->get()->keyBy('id');
-        }
-        $logsWithArticle = $items->map(function ($l) use ($articles) {
-            $arr = $l instanceof \Illuminate\Database\Eloquent\Model ? $l->toArray() : (array) $l;
-            if (isset($l->created_at) && $l->created_at instanceof \Carbon\Carbon) {
-                $arr['created_at'] = $l->created_at->toIso8601String();
-            }
-            $arr['article'] = null;
-            if ($l->model_type === 'Article' && $l->model_id && isset($articles[$l->model_id])) {
-                $a = $articles[$l->model_id];
-                $arr['article'] = [ 'id' => $a->id, 'title' => $a->title ?? $a->title_urdu, 'slug' => $a->slug ];
-            }
-            return $arr;
-        })->all();
+        $originalSlug = $slug;
+        $counter = 1;
 
-        return Inertia::render('Moderator/Logs', [
-            'logs' => $logsWithArticle,
-            'pagination' => $pagination,
-            'moderator' => [
-                'id' => $moderator->id,
-                'name' => $moderator->name,
-                'email' => $moderator->email,
-                'email_verified_at' => $moderator->email_verified_at,
-            ],
+        while (Article::where('slug', $slug)
+            ->when($excludeId, function ($query) use ($excludeId) {
+                return $query->where('id', '!=', $excludeId);
+            })
+            ->exists()) {
+            $slug = $originalSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
+    }
+
+    private function logModeratorAction($moderator, $action, $model = null, $details = [])
+    {
+        $logData = [
+            'moderator_id' => $moderator->id,
+            'action' => $action,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ];
+
+        if ($model) {
+            $logData['model_type'] = get_class($model);
+            $logData['model_id'] = $model->id;
+            
+            // Prepare detailed information
+            $logDetails = [
+                'model' => class_basename($model),
+                'title' => $model->title ?? null,
+                'id' => $model->id,
+            ];
+            
+            // Add additional details if provided
+            if (!empty($details)) {
+                $logDetails['changes'] = $details;
+            }
+            
+            $logData['details'] = json_encode($logDetails, JSON_PRETTY_PRINT);
+        }
+
+        // Only increment creation counters for 'create' action
+        if ($action === 'create') {
+            $logData['created_articles_en'] = 1; // Single language - English
+        }
+        // For update actions, we could add updated_articles counter if needed
+        // else if ($action === 'update') {
+        //     $logData['updated_articles'] = 1;
+        // }
+
+        ModeratorLog::create($logData);
+    }
+
+    // Add method to show article (read-only for moderators)
+    public function showArticle(Article $article)
+    {
+        $moderator = Auth::guard('moderator')->user();
+        $article->load('images');
+        
+        return inertia('Moderator/ShowArticle', [
+            'moderator' => $moderator,
+            'article' => $article,
+            'canEdit' => $article->author === $moderator->name
         ]);
+    }
+
+    // Add method to delete article (with confirmation and logging)
+    public function destroyArticle(Article $article)
+    {
+        $moderator = Auth::guard('moderator')->user();
+        
+        // Check if moderator is the author
+        if ($article->author !== $moderator->name) {
+            return back()->with('error', 'You can only delete your own articles.');
+        }
+
+        // Store article info for logging before deletion
+        $articleInfo = [
+            'title' => $article->title,
+            'id' => $article->id,
+            'author' => $article->author
+        ];
+
+        // Delete associated images from storage
+        $images = ArticleImage::where('article_id', $article->id)->get();
+        foreach ($images as $image) {
+            if (Storage::exists('public/' . $image->path)) {
+                Storage::delete('public/' . $image->path);
+            }
+        }
+
+        // Delete the article
+        $article->delete();
+
+        // Log the deletion action
+        $this->logModeratorAction($moderator, 'delete', null, [
+            'deleted_article' => $articleInfo,
+            'deleted_at' => now()->toDateTimeString()
+        ]);
+
+        return redirect()->route('moderator.articles.index')
+            ->with('success', 'Article deleted successfully.');
     }
 }

@@ -29,9 +29,6 @@ class AdminController extends Controller
     public function dashboard(Request $request)
     {
         $totalArticles = Article::count();
-        $englishArticles = Article::where('language', 'en')->count();
-        $urduArticles = Article::where('language', 'ur')->count();
-        $multiLangArticles = Article::where('language', 'multi')->count();
         
         // Get article counts by category
         $categoryCounts = [];
@@ -50,9 +47,6 @@ class AdminController extends Controller
 
         return Inertia::render('Admin/Dashboard', [
             'totalArticles' => $totalArticles,
-            'englishArticles' => $englishArticles,
-            'urduArticles' => $urduArticles,
-            'multiLangArticles' => $multiLangArticles,
             'categoryCounts' => $categoryCounts,
             'categories' => $this->getCategories(),
             'adminName' => $adminName,
@@ -103,7 +97,7 @@ class AdminController extends Controller
                 $a = $articles[$l->model_id];
                 $arr['article'] = [ 
                     'id' => $a->id, 
-                    'title' => $a->title ?? $a->title_urdu, 
+                    'title' => $a->title, 
                     'slug' => $a->slug,
                     'category' => $a->category
                 ];
@@ -129,22 +123,18 @@ class AdminController extends Controller
             $query->where('category', $request->category);
         }
         
-        // Filter by language if provided
-        if ($request->has('language') && $request->language !== 'all') {
-            $query->where('language', $request->language);
-        }
+        // language column removed; no language filter
         
         // Filter by featured status
         if ($request->has('featured') && $request->featured !== 'all') {
             $query->where('is_featured', $request->featured === 'yes');
         }
         
-        // Search by title/slug
+        // Search by title/slug/author
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('title', 'LIKE', "%{$search}%")
-                  ->orWhere('title_urdu', 'LIKE', "%{$search}%")
                   ->orWhere('slug', 'LIKE', "%{$search}%")
                   ->orWhere('author', 'LIKE', "%{$search}%");
             });
@@ -155,7 +145,7 @@ class AdminController extends Controller
         return Inertia::render('Admin/AllArticles', [
             'articles' => $articles,
             'categories' => $this->getCategories(),
-            'filters' => $request->only(['category', 'language', 'featured', 'search']),
+            'filters' => $request->only(['category', 'featured', 'search']),
         ]);
     }
 
@@ -289,14 +279,10 @@ class AdminController extends Controller
     $adminId = $request->session()->get('admin_id');
     
     $validated = $request->validate([
-        'language' => 'required|in:en,ur,multi',
-        'title' => 'required_if:language,en,multi',
-        'summary' => 'required_if:language,en,multi',
-        'content' => 'required_if:language,en,multi',
-        'title_urdu' => 'required_if:language,ur,multi',
-        'summary_urdu' => 'required_if:language,ur,multi',
-        'content_urdu' => 'required_if:language,ur,multi',
-        'category' => 'required|in:News,Opinion,Analysis,Mystery / Fiction,Stories / Creative,Miscellaneous', // Updated
+        'title' => 'required|string',
+        'summary' => 'required|string',
+        'content' => 'required|string',
+        'category' => 'required|in:News,Opinion,Analysis,Mystery / Fiction,Stories / Creative,Miscellaneous',
         'tags' => 'nullable|string',
         'image_url' => 'nullable|url',
         'image_public_id' => 'nullable|string',
@@ -310,13 +296,9 @@ class AdminController extends Controller
 
     $article = new Article();
     $article->fill([
-        'language' => $validated['language'],
         'title' => $validated['title'] ?? null,
         'summary' => $validated['summary'] ?? null,
         'content' => $validated['content'] ?? null,
-        'title_urdu' => $validated['title_urdu'] ?? null,
-        'summary_urdu' => $validated['summary_urdu'] ?? null,
-        'content_urdu' => $validated['content_urdu'] ?? null,
         'category' => $validated['category'],
         'tags' => $validated['tags'] ?? null,
         'author' => $validated['author'],
@@ -326,9 +308,7 @@ class AdminController extends Controller
     ]);
 
     // Handle slug generation
-    $article->slug = $validated['slug'] ?? \Str::slug(
-        $article->title ?? $article->title_urdu ?? uniqid('article-', true)
-    );
+    $article->slug = $validated['slug'] ?? \Str::slug($article->title ?? uniqid('article-', true));
 
     // Ensure slug is unique
     $originalSlug = $article->slug;
@@ -364,7 +344,7 @@ class AdminController extends Controller
             'action' => 'create',
             'model_type' => 'Article',
             'model_id' => $article->id,
-            'details' => 'Created article: ' . ($article->title ?? $article->title_urdu) . ' (Category: ' . $article->category . ')',
+            'details' => 'Created article: ' . ($article->title) . ' (Category: ' . $article->category . ')',
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
@@ -393,7 +373,7 @@ class AdminController extends Controller
                 'action' => 'delete',
                 'model_type' => 'Article',
                 'model_id' => $article->id,
-                'details' => 'Deleted article: ' . ($article->title ?? $article->title_urdu) . ' (Category: ' . $article->category . ')',
+                'details' => 'Deleted article: ' . ($article->title) . ' (Category: ' . $article->category . ')',
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -418,14 +398,10 @@ class AdminController extends Controller
     $article = Article::findOrFail($id);
     
     $validated = $request->validate([
-        'language' => 'required|in:en,ur,multi',
-        'title' => 'required_if:language,en,multi',
-        'summary' => 'required_if:language,en,multi',
-        'content' => 'required_if:language,en,multi',
-        'title_urdu' => 'required_if:language,ur,multi',
-        'summary_urdu' => 'required_if:language,ur,multi',
-        'content_urdu' => 'required_if:language,ur,multi',
-        'category' => 'required|in:News,Opinion,Analysis,Mystery / Fiction,Stories / Creative,Miscellaneous', // Updated
+        'title' => 'required|string',
+        'summary' => 'required|string',
+        'content' => 'required|string',
+        'category' => 'required|in:News,Opinion,Analysis,Mystery / Fiction,Stories / Creative,Miscellaneous',
         'tags' => 'nullable|string',
         'image_url' => 'nullable|url',
         'image_public_id' => 'nullable|string',
@@ -437,13 +413,9 @@ class AdminController extends Controller
         'is_featured' => 'sometimes|boolean',
     ]);
 
-    $article->language = $validated['language'];
     $article->title = $validated['title'] ?? null;
     $article->summary = $validated['summary'] ?? null;
     $article->content = $validated['content'] ?? null;
-    $article->title_urdu = $validated['title_urdu'] ?? null;
-    $article->summary_urdu = $validated['summary_urdu'] ?? null;
-    $article->content_urdu = $validated['content_urdu'] ?? null;
     $article->category = $validated['category'];
     $article->tags = $validated['tags'] ?? null;
     $article->author = $validated['author'];
@@ -461,7 +433,7 @@ class AdminController extends Controller
     if (isset($validated['slug']) && !empty($validated['slug'])) {
         $slug = $validated['slug'];
     } else {
-        $slug = \Str::slug($article->title ?? $article->title_urdu ?? uniqid('article-', true));
+        $slug = \Str::slug($article->title ?? uniqid('article-', true));
     }
     
     $originalSlug = $slug;
@@ -492,7 +464,7 @@ class AdminController extends Controller
             'action' => 'update',
             'model_type' => 'Article',
             'model_id' => $article->id,
-            'details' => 'Updated article: ' . ($article->title ?? $article->title_urdu) . ' (Category: ' . $article->category . ')',
+            'details' => 'Updated article: ' . ($article->title) . ' (Category: ' . $article->category . ')',
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
@@ -515,7 +487,7 @@ class AdminController extends Controller
                 'action' => 'update',
                 'model_type' => 'Article',
                 'model_id' => $article->id,
-                'details' => 'Toggled featured status: ' . ($article->is_featured ? 'Featured' : 'Unfeatured') . ' - ' . ($article->title ?? $article->title_urdu),
+                'details' => 'Toggled featured status: ' . ($article->is_featured ? 'Featured' : 'Unfeatured') . ' - ' . ($article->title),
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -537,10 +509,7 @@ class AdminController extends Controller
                 ->groupBy('category')
                 ->get()
                 ->pluck('count', 'category'),
-            'by_language' => Article::selectRaw('language, COUNT(*) as count')
-                ->groupBy('language')
-                ->get()
-                ->pluck('count', 'language'),
+            // 'by_language' removed (English-only)
             'featured_count' => Article::where('is_featured', true)->count(),
             'latest_articles' => Article::orderBy('created_at', 'desc')
                 ->take(10)
