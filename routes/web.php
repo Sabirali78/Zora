@@ -47,18 +47,28 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     Route::get('/moderators', [AdminController::class, 'moderators'])->name('admin.moderators');
     Route::post('/moderators/{id}/verify', [AdminController::class, 'verifyModerator'])->name('admin.moderators.verify');
     Route::get('/moderators/{id}/logs', [AdminController::class, 'moderatorLogs'])->name('admin.moderators.logs');
+    
+    // FIXED: Use lowercase 'traffic-analytics' for URL consistency
+    Route::get('/traffic-analytics', [AdminController::class, 'trafficAnalytics'])->name('admin.traffic');
+    
+    // Remove the duplicate route below
+    // Route::get('/TrafficAnalytics', [AdminController::class, 'trafficAnalytics'])->name('admin.traffic');
+    
     // Inside the /admin prefix group
-Route::get('/moderators/create', [AdminController::class, 'createModerator'])->name('admin.moderators.create');
-Route::post('/moderators', [AdminController::class, 'storeModerator'])->name('admin.moderators.store');
+    Route::get('/moderators/create', [AdminController::class, 'createModerator'])->name('admin.moderators.create');
+    Route::post('/moderators', [AdminController::class, 'storeModerator'])->name('admin.moderators.store');
 
     Route::get('/articles/create', [AdminController::class, 'createArticle'])->name('admin.articles.create');
     Route::post('/articles', [AdminController::class, 'storeArticle'])->name('admin.articles.store');
     Route::delete('/articles/{id}', [AdminController::class, 'deleteArticle'])->name('admin.articles.delete');
     Route::get('/articles/{id}/edit', [AdminController::class, 'editArticle'])->name('admin.articles.edit');
-Route::post('/articles/{id}/remove-image/{image}', [AdminController::class, 'removeImage'])
-    ->name('admin.articles.remove-image');
+    Route::post('/articles/{id}/remove-image/{image}', [AdminController::class, 'removeImage'])
+        ->name('admin.articles.remove-image');
     Route::post('/articles/{id}/update', [AdminController::class, 'updateArticle'])->name('admin.articles.update');
 });
+
+// REMOVE THIS DUPLICATE ROUTE - It's outside the admin prefix group
+// Route::get('/TrafficAnalytics', [AdminController::class, 'trafficAnalytics'])->name('admin.traffic');
 
 // ============ MODERATOR ROUTES (WITH /moderator/ PREFIX) ============
 Route::prefix('moderator')->middleware('auth')->group(function () {

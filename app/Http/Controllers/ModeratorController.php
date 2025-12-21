@@ -10,9 +10,12 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use App\Models\TrafficLog; // Add this import
+use Illuminate\Support\Facades\DB; // Add this for DB::raw
 
 class ModeratorController extends Controller
 {
+
     // ... existing create and store methods ...
     private function getCategories()
     {
@@ -34,15 +37,123 @@ class ModeratorController extends Controller
                 'email' => 'Access denied. Moderator account required.'
             ]);
         }
+        
         $moderatorName = $moderator->name;
         $moderatorArticles = Article::where('author', $moderatorName)->count();
         $totalArticles = Article::count();
-        return inertia('Moderator/Dashboard', [
+        
+        // ---------- TRAFFIC STATS FOR MODERATOR'S ARTICLES ----------
+        $moderatorArticleIds = Article::where('author', $moderatorName)->pluck('id');
+        
+        // Total visits to moderator's articles
+        $moderatorArticleVisits = TrafficLog::whereIn('article_id', $moderatorArticleIds)->count();
+        
+        // Today's visits to moderator's articles
+        $moderatorTodayVisits = TrafficLog::whereIn('article_id', $moderatorArticleIds)
+            ->whereDate('created_at', today())
+            ->count();
+        
+        // Unique visitors to moderator's articles
+        $moderatorUniqueVisitors = TrafficLog::whereIn('article_id', $moderatorArticleIds)
+            ->select('ip')
+            ->distinct()
+            ->count('ip');
+        
+        // Top 5 most viewed articles by this moderator
+        $moderatorTopArticles = TrafficLog::select('article_id', DB::raw('COUNT(*) as views'))
+            ->whereIn('article_id', $moderatorArticleIds)
+            ->groupBy('article_id')
+            ->orderByDesc('views')
+            ->with('article:id,title,slug,author')
+            ->limit(5)
+            ->get()
+            ->filter(function($item) use ($moderatorName) {
+                // Ensure article still exists and belongs to moderator
+                return $item->article && $item->article->author === $moderatorName;
+            })
+            ->map(function($item) {
+                return [
+                    'article' => $item->article,
+                    'views' => $item->views
+                ];
+            });
+        
+        // Recent visits to moderator's articles
+        $moderatorRecentLogs = TrafficLog::with('article:id,title,slug,author')
+            ->whereIn('article_id', $moderatorArticleIds)
+            ->latest()
+            ->limit(15)
+            ->get()
+            ->filter(function($log) use ($moderatorName) {
+                // Ensure article still exists and belongs to moderator
+                return $log->article && $log->article->author === $moderatorName;
+            })
+            ->map(function($log) {
+                return [
+                    'article' => $log->article,
+                    'ip' => $log->ip_address,
+                    'user_agent' => $this->formatUserAgent($log->browser, $log->platform),
+                    'created_at' => $log->created_at->diffForHumans(),
+                    'page_type' => $log->page_type,
+                ];
+            });
+        
+        // Get article counts by category for moderator
+        $moderatorCategoryCounts = [];
+        foreach ($this->getCategories() as $category) {
+            $moderatorCategoryCounts[$category] = Article::where('category', $category)
+                ->where('author', $moderatorName)
+                ->count();
+        }
+        
+        // Moderator's monthly performance
+        $monthlyPerformance = TrafficLog::select(
+                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                DB::raw('COUNT(*) as visits')
+            )
+            ->whereIn('article_id', $moderatorArticleIds)
+            ->where('created_at', '>=', now()->subMonths(6))
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+        
+        return Inertia::render('Moderator/Dashboard', [
             'moderator' => $moderator,
             'moderatorName' => $moderatorName,
             'totalArticles' => $totalArticles,
             'moderatorArticles' => $moderatorArticles,
+            
+            // Traffic stats specific to moderator
+            'moderatorArticleVisits' => $moderatorArticleVisits,
+            'moderatorTodayVisits' => $moderatorTodayVisits,
+            'moderatorUniqueVisitors' => $moderatorUniqueVisitors,
+            'moderatorTopArticles' => $moderatorTopArticles,
+            'moderatorRecentLogs' => $moderatorRecentLogs,
+            'moderatorCategoryCounts' => $moderatorCategoryCounts,
+            'monthlyPerformance' => $monthlyPerformance,
+            
+            // General traffic stats (read-only for moderator)
+            'totalVisits' => TrafficLog::count(),
+            'todayVisits' => TrafficLog::whereDate('created_at', today())->count(),
+            'uniqueVisitors' => TrafficLog::select('ip')->distinct()->count('ip'),
+            
+            // Categories for dropdowns
+            'categories' => $this->getCategories(),
         ]);
+    }
+    
+    // Helper method to format user agent
+    private function formatUserAgent($browser, $platform)
+    {
+        if (!$browser && !$platform) {
+            return 'Unknown';
+        }
+        
+        if ($browser && $platform) {
+            return "{$browser} on {$platform}";
+        }
+        
+        return $browser ?: $platform;
     }
     
     public function createArticle(Request $request)

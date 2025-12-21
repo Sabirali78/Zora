@@ -12,6 +12,8 @@ use App\Models\Trash;
 use App\Models\AdminLog;
 use App\Models\ModeratorLog;
 use Illuminate\Support\Facades\Storage;
+use App\Models\TrafficLog; // Add this import
+use Illuminate\Support\Facades\DB; // Add this for DB::raw
 
 class AdminController extends Controller
 {
@@ -58,7 +60,7 @@ public function storeModerator(Request $request)
     ];
 }
 
-    public function dashboard(Request $request)
+   public function dashboard(Request $request)
     {
         // Require authenticated admin user
         if (! Auth::check() || (Auth::user()->role !== 'admin' && Auth::user()->is_admin != 1)) {
@@ -66,7 +68,7 @@ public function storeModerator(Request $request)
         }
 
         $totalArticles = Article::count();
-        
+
         // Get article counts by category
         $categoryCounts = [];
         foreach ($this->getCategories() as $category) {
@@ -75,12 +77,69 @@ public function storeModerator(Request $request)
 
         $adminName = Auth::user()->name ?? null;
 
+        // ---------- TRAFFIC STATS ----------
+        $totalVisits = TrafficLog::count();
+
+        $todayVisits = TrafficLog::whereDate('created_at', today())->count();
+
+        $uniqueVisitors = TrafficLog::select('ip')->distinct()->count('ip'); // Fixed column name
+
+        // Top 10 Most Viewed Articles
+        $topArticles = TrafficLog::select('article_id', DB::raw('COUNT(*) as views'))
+            ->whereNotNull('article_id')
+            ->groupBy('article_id')
+            ->orderByDesc('views')
+            ->with('article:id,title,slug')
+            ->limit(10)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'article' => $item->article,
+                    'views' => $item->views
+                ];
+            });
+
+        // Latest 20 Logs
+        $latestLogs = TrafficLog::with('article:id,title,slug')
+            ->latest()
+            ->limit(20)
+            ->get()
+            ->map(function($log) {
+                return [
+                    'article' => $log->article,
+                    'ip' => $log->ip_address,
+                    'user_agent' => $this->formatUserAgent($log->browser, $log->platform),
+                    'created_at' => $log->created_at->diffForHumans(),
+                ];
+            });
+
         return Inertia::render('Admin/Dashboard', [
             'totalArticles' => $totalArticles,
             'categoryCounts' => $categoryCounts,
             'categories' => $this->getCategories(),
             'adminName' => $adminName,
+
+            // Traffic Props
+            'totalVisits' => $totalVisits,
+            'todayVisits' => $todayVisits,
+            'uniqueVisitors' => $uniqueVisitors,
+            'topArticles' => $topArticles,
+            'latestLogs' => $latestLogs,
         ]);
+    }
+
+    // Helper method to format user agent
+    private function formatUserAgent($browser, $platform)
+    {
+        if (!$browser && !$platform) {
+            return 'Unknown';
+        }
+        
+        if ($browser && $platform) {
+            return "{$browser} on {$platform}";
+        }
+        
+        return $browser ?: $platform;
     }
 
     public function adminLogs(Request $request)
@@ -620,4 +679,303 @@ public function storeModerator(Request $request)
         
         return response()->json($stats);
     }
+public function trafficAnalytics(Request $request)
+{
+    // Require admin authentication
+    if (!Auth::check() || (Auth::user()->role !== 'admin' && Auth::user()->is_admin != 1)) {
+        return redirect()->route('login');
+    }
+
+    $period = $request->input('period', '7days'); // 7days, 30days, 90days, year
+    
+    // Determine date range
+$dateRange = $this->getDateRange($period);
+    $startDate = $dateRange['start'];
+    $endDate = $dateRange['end'];
+
+    // Base query
+    $query = TrafficLog::query();
+    
+    // Apply date filter
+    $query->whereBetween('created_at', [$startDate, $endDate]);
+
+    // ============ OVERALL STATS ============
+    $totalVisits = $query->count();
+    $uniqueVisitors = $query->distinct('ip')->count('ip');
+    
+    // Simplified bounce rate calculation (since we don't have page_type)
+    $bounceRate = $this->calculateBounceRate($startDate, $endDate);
+    
+    // ============ VISITS OVER TIME ============
+    $visitsOverTime = $this->getVisitsOverTime($startDate, $endDate);
+    
+    // ============ TOP ARTICLES ============
+    $topArticles = TrafficLog::select(
+            'article_id',
+            DB::raw('COUNT(*) as visits'),
+            DB::raw('COUNT(DISTINCT ip) as unique_visitors')
+        )
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->whereNotNull('article_id')
+        ->groupBy('article_id')
+        ->orderByDesc('visits')
+        ->with('article:id,title,slug,category,author')
+        ->limit(20)
+        ->get()
+        ->map(function ($item) use ($startDate, $endDate) {
+            return [
+                'article' => $item->article,
+                'visits' => $item->visits,
+                'unique_visitors' => $item->unique_visitors,
+                'avg_time_on_page' => $this->calculateAvgTimeOnArticle($item->article_id, $startDate, $endDate),
+            ];
+        });
+
+    // ============ ARTICLE VIEWS BREAKDOWN ============
+    $articleViews = TrafficLog::select(
+            DB::raw('COUNT(*) as total_visits'),
+            DB::raw('COUNT(DISTINCT article_id) as articles_viewed'),
+            DB::raw('ROUND(AVG(TIMESTAMPDIFF(SECOND, created_at, updated_at)), 0) as avg_duration')
+        )
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->whereNotNull('article_id')
+        ->first();
+
+    // ============ TIME OF DAY ANALYSIS ============
+    $timeOfDayStats = TrafficLog::select(
+            DB::raw('HOUR(created_at) as hour'),
+            DB::raw('COUNT(*) as visits')
+        )
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->groupBy('hour')
+        ->orderBy('hour')
+        ->get();
+
+    // ============ PEAK TRAFFIC DAYS ============
+    $peakDays = TrafficLog::select(
+            DB::raw('DATE(created_at) as date'),
+            DB::raw('COUNT(*) as visits'),
+            DB::raw('COUNT(DISTINCT ip) as unique_visitors')
+        )
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->groupBy('date')
+        ->orderByDesc('visits')
+        ->limit(10)
+        ->get();
+
+    // ============ BROWSER/DEVICE DETECTION FROM USER_AGENT ============
+    // Extract basic browser info from user_agent
+    $browserStats = TrafficLog::select(
+            DB::raw('
+                CASE 
+                    WHEN user_agent LIKE "%Chrome%" THEN "Chrome"
+                    WHEN user_agent LIKE "%Firefox%" THEN "Firefox"
+                    WHEN user_agent LIKE "%Safari%" THEN "Safari"
+                    WHEN user_agent LIKE "%Edge%" THEN "Edge"
+                    WHEN user_agent LIKE "%Opera%" THEN "Opera"
+                    WHEN user_agent LIKE "%MSIE%" OR user_agent LIKE "%Trident%" THEN "Internet Explorer"
+                    ELSE "Other"
+                END as browser
+            '),
+            DB::raw('COUNT(*) as visits'),
+            DB::raw('ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM traffic_logs WHERE created_at BETWEEN ? AND ?), 2) as percentage')
+        )
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->groupBy('browser')
+        ->setBindings([$startDate, $endDate])
+        ->orderByDesc('visits')
+        ->limit(10)
+        ->get();
+
+    // Extract device type from user_agent
+    $deviceStats = TrafficLog::select(
+            DB::raw('
+                CASE 
+                    WHEN user_agent LIKE "%Mobile%" OR user_agent LIKE "%Android%" OR user_agent LIKE "%iPhone%" THEN "Mobile"
+                    WHEN user_agent LIKE "%Tablet%" OR user_agent LIKE "%iPad%" THEN "Tablet"
+                    ELSE "Desktop"
+                END as device_type
+            '),
+            DB::raw('COUNT(*) as visits'),
+            DB::raw('ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM traffic_logs WHERE created_at BETWEEN ? AND ?), 2) as percentage')
+        )
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->groupBy('device_type')
+        ->setBindings([$startDate, $endDate])
+        ->orderByDesc('visits')
+        ->get();
+
+    // ============ REFERRER STATS ============
+    $referrerStats = TrafficLog::select(
+            DB::raw('
+                CASE 
+                    WHEN referer IS NULL OR referer = "" THEN "Direct"
+                    WHEN referer LIKE "%google%" THEN "Google"
+                    WHEN referer LIKE "%bing%" THEN "Bing"
+                    WHEN referer LIKE "%yahoo%" THEN "Yahoo"
+                    WHEN referer LIKE "%facebook%" THEN "Facebook"
+                    WHEN referer LIKE "%twitter%" THEN "Twitter"
+                    WHEN referer LIKE "%instagram%" THEN "Instagram"
+                    WHEN referer LIKE "%linkedin%" THEN "LinkedIn"
+                    WHEN referer LIKE "%tiktok%" THEN "TikTok"
+                    WHEN referer LIKE "%youtube%" THEN "YouTube"
+                    ELSE "Other Referrals"
+                END as source
+            '),
+            DB::raw('COUNT(*) as visits'),
+            DB::raw('ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM traffic_logs WHERE created_at BETWEEN ? AND ?), 2) as percentage')
+        )
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->groupBy('source')
+        ->setBindings([$startDate, $endDate])
+        ->orderByDesc('visits')
+        ->get();
+
+    // ============ REAL-TIME ACTIVITY (Last 24 hours) ============
+    $realtimeActivity = TrafficLog::with(['article:id,title,slug'])
+        ->where('created_at', '>=', now()->subHours(24))
+        ->orderByDesc('created_at')
+        ->limit(50)
+        ->get()
+        ->map(function ($log) {
+            // Extract browser from user_agent for display
+            $browser = 'Unknown';
+            $userAgent = $log->user_agent ?? '';
+            
+            if (strpos($userAgent, 'Chrome') !== false) {
+                $browser = 'Chrome';
+            } elseif (strpos($userAgent, 'Firefox') !== false) {
+                $browser = 'Firefox';
+            } elseif (strpos($userAgent, 'Safari') !== false && strpos($userAgent, 'Chrome') === false) {
+                $browser = 'Safari';
+            } elseif (strpos($userAgent, 'Edge') !== false) {
+                $browser = 'Edge';
+            } elseif (strpos($userAgent, 'Opera') !== false) {
+                $browser = 'Opera';
+            } elseif (strpos($userAgent, 'MSIE') !== false || strpos($userAgent, 'Trident') !== false) {
+                $browser = 'Internet Explorer';
+            }
+            
+            // Extract device type
+            $deviceType = 'Desktop';
+            if (strpos($userAgent, 'Mobile') !== false || 
+                strpos($userAgent, 'Android') !== false || 
+                strpos($userAgent, 'iPhone') !== false) {
+                $deviceType = 'Mobile';
+            } elseif (strpos($userAgent, 'Tablet') !== false || strpos($userAgent, 'iPad') !== false) {
+                $deviceType = 'Tablet';
+            }
+            
+            return [
+                'id' => $log->id,
+                'article' => $log->article,
+                'ip' => $log->ip,
+                'browser' => $browser,
+                'device_type' => $deviceType,
+                'referrer' => $log->referer ?? 'Direct',
+                'created_at' => $log->created_at->format('Y-m-d H:i:s'),
+                'time_ago' => $log->created_at->diffForHumans(),
+            ];
+        });
+
+    return Inertia::render('Admin/TrafficAnalytics', [
+        // Filters
+        'period' => $period,
+        'startDate' => $startDate->format('Y-m-d'),
+        'endDate' => $endDate->format('Y-m-d'),
+        
+        // Overall Stats
+        'totalVisits' => $totalVisits,
+        'uniqueVisitors' => $uniqueVisitors,
+        'bounceRate' => $bounceRate,
+        'articleViews' => $articleViews,
+        
+        // Charts Data
+        'visitsOverTime' => $visitsOverTime,
+        'timeOfDayStats' => $timeOfDayStats,
+        
+        // Breakdowns
+        'deviceStats' => $deviceStats,
+        'browserStats' => $browserStats,
+        'referrerStats' => $referrerStats,
+        
+        // Content Analysis
+        'topArticles' => $topArticles,
+        'peakDays' => $peakDays,
+        
+        // Real-time
+        'realtimeActivity' => $realtimeActivity,
+        
+        // Options for filters
+        'periodOptions' => [
+            ['value' => '7days', 'label' => 'Last 7 Days'],
+            ['value' => '30days', 'label' => 'Last 30 Days'],
+            ['value' => '90days', 'label' => 'Last 90 Days'],
+            ['value' => 'year', 'label' => 'Last Year'],
+            ['value' => 'all', 'label' => 'All Time'],
+        ],
+    ]);
+}
+
+// Update helper methods to remove page_type parameter
+private function getVisitsOverTime($startDate, $endDate)
+{
+    $diffInDays = $startDate->diffInDays($endDate);
+    
+    if ($diffInDays <= 7) {
+        // Daily breakdown for 7 days or less
+        return TrafficLog::select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('COUNT(*) as visits'),
+                DB::raw('COUNT(DISTINCT ip) as unique_visitors')
+            )
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+    } elseif ($diffInDays <= 30) {
+        // Daily for 30 days
+        return TrafficLog::select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('COUNT(*) as visits'),
+                DB::raw('COUNT(DISTINCT ip) as unique_visitors')
+            )
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+    } else {
+        // Monthly for longer periods
+        return TrafficLog::select(
+                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+                DB::raw('COUNT(*) as visits'),
+                DB::raw('COUNT(DISTINCT ip) as unique_visitors')
+            )
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+    }
+}
+
+private function calculateBounceRate($startDate, $endDate)
+{
+    // Simple bounce rate calculation: single page visits / total visits
+    $totalVisits = TrafficLog::whereBetween('created_at', [$startDate, $endDate])
+        ->count();
+
+    $singlePageVisits = TrafficLog::select('ip')
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->groupBy('ip')
+        ->havingRaw('COUNT(*) = 1')
+        ->count();
+
+    if ($totalVisits > 0) {
+        return round(($singlePageVisits / $totalVisits) * 100, 2);
+    }
+
+    return 0;
+}
+
+
 }

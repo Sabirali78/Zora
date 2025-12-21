@@ -2,8 +2,15 @@ import React from 'react';
 import { Link } from '@inertiajs/react';
 import AdminNavbar from '@/components/AdminNavbar';
 
-
-export default function Dashboard({ totalArticles, englishArticles, urduArticles, multiLangArticles, adminName }) {
+export default function Dashboard({ 
+  totalArticles, 
+  totalVisits, // This is passed from controller, not totalTraffic
+  todayVisits, 
+  uniqueVisitors, 
+  topArticles, 
+  latestLogs, 
+  adminName 
+}) {
   const [darkMode, setDarkMode] = React.useState(
     window.localStorage.getItem('theme') === 'dark'
   );
@@ -15,7 +22,6 @@ export default function Dashboard({ totalArticles, englishArticles, urduArticles
   return (
     <div className={`min-h-screen transition-colors duration-200 ${darkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
       <AdminNavbar adminName={adminName} darkMode={darkMode} setDarkMode={setDarkMode} />
-
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
@@ -48,54 +54,36 @@ export default function Dashboard({ totalArticles, englishArticles, urduArticles
             </div>
           </div>
 
-          {/* English Articles Card */}
+          {/* Total Visits Card - FIXED: using totalVisits instead of totalTraffic */}
           <div className={`relative overflow-hidden rounded-xl transition-all duration-200 ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200 shadow-sm hover:shadow-md'}`}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg ${darkMode ? 'bg-green-900/30' : 'bg-green-50'}`}>
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                <div className={`p-3 rounded-lg ${darkMode ? 'bg-red-900/30' : 'bg-red-50'}`}>
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/>
                   </svg>
                 </div>
               </div>
-              <div className="text-3xl font-bold mb-1">{englishArticles}</div>
+              <div className="text-3xl font-bold mb-1">{totalVisits}</div> {/* Changed here */}
               <div className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                English Articles
+                Total Website Visits
               </div>
             </div>
           </div>
 
-          {/* Urdu Articles Card */}
-          <div className={`relative overflow-hidden rounded-xl transition-all duration-200 ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200 shadow-sm hover:shadow-md'}`}>
+          {/* Today Visits */}
+          <div className={`relative overflow-hidden rounded-xl ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200 shadow-sm'}`}>
             <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg ${darkMode ? 'bg-purple-900/30' : 'bg-purple-50'}`}>
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="text-3xl font-bold mb-1">{urduArticles}</div>
-              <div className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Urdu Articles
-              </div>
+              <h3 className="text-sm font-medium mb-2">Today's Visits</h3>
+              <div className="text-3xl font-bold">{todayVisits}</div>
             </div>
           </div>
 
-          {/* Multi-language Articles Card */}
-          <div className={`relative overflow-hidden rounded-xl transition-all duration-200 ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200 shadow-sm hover:shadow-md'}`}>
+          {/* Unique Visitors */}
+          <div className={`relative overflow-hidden rounded-xl ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200 shadow-sm'}`}>
             <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg ${darkMode ? 'bg-orange-900/30' : 'bg-orange-50'}`}>
-                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="text-3xl font-bold mb-1">{multiLangArticles}</div>
-              <div className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Multi-language
-              </div>
+              <h3 className="text-sm font-medium mb-2">Unique Visitors</h3>
+              <div className="text-3xl font-bold">{uniqueVisitors}</div>
             </div>
           </div>
         </div>
@@ -129,6 +117,66 @@ export default function Dashboard({ totalArticles, englishArticles, urduArticles
               Manage Moderators
             </Link>
           </div>
+        </div>
+
+        <div className={`mt-10 p-6 rounded-xl ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200 shadow-sm'}`}>
+          <h2 className="text-xl font-bold mb-4">🔥 Top 10 Most Viewed Articles</h2>
+
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} text-left`}>
+                <th className="p-3">#</th>
+                <th className="p-3">Article</th>
+                <th className="p-3">Views</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {topArticles.map((item, index) => (
+                <tr key={index} className={`${darkMode ? 'border-gray-800' : 'border-gray-200'} border-t`}>
+                  <td className="p-3">{index + 1}</td>
+                  <td className="p-3">
+                    {item.article
+                      ? <Link href={`/articles/${item.article.slug}`} className="text-blue-500 hover:underline">
+                          {item.article.title}
+                        </Link>
+                      : 'Deleted Article'}
+                  </td>
+                  <td className="p-3 font-semibold">{item.views}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className={`mt-10 p-6 rounded-xl ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200 shadow-sm'}`}>
+          <h2 className="text-xl font-bold mb-4">📈 Recent Visits</h2>
+
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} text-left`}>
+                <th className="p-3">Article</th>
+                <th className="p-3">IP</th>
+                <th className="p-3">Browser</th>
+                <th className="p-3">Time</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {latestLogs.map((log, i) => ( // Changed from recentLogs to latestLogs
+                <tr key={i} className={`${darkMode ? 'border-gray-800' : 'border-gray-200'} border-t`}>
+                  <td className="p-3">
+                    {log.article
+                      ? log.article.title
+                      : 'Deleted Article'}
+                  </td>
+                  <td className="p-3">{log.ip}</td>
+                  <td className="p-3 truncate max-w-[200px]">{log.user_agent}</td>
+                  <td className="p-3">{log.created_at}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </main>
     </div>

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Image;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\TrafficLog;
 
 class Article extends Model
 {
@@ -34,6 +35,11 @@ class Article extends Model
     {
         return $this->hasMany(Image::class);
     }
+
+    public function trafficLogs()
+{
+    return $this->hasMany(TrafficLog::class);
+}
 
     public function getRouteKeyName()
     {
