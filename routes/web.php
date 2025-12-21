@@ -46,6 +46,7 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     Route::get('/logs', [AdminController::class, 'adminLogs'])->name('admin.logs');
     Route::get('/moderators', [AdminController::class, 'moderators'])->name('admin.moderators');
     Route::post('/moderators/{id}/verify', [AdminController::class, 'verifyModerator'])->name('admin.moderators.verify');
+    Route::post('/moderators/{id}/unverify', [AdminController::class, 'unverifyModerator'])->name('admin.moderators.unverify');
     Route::get('/moderators/{id}/logs', [AdminController::class, 'moderatorLogs'])->name('admin.moderators.logs');
     
     // FIXED: Use lowercase 'traffic-analytics' for URL consistency

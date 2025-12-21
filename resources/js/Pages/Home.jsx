@@ -11,7 +11,6 @@ const FeaturedSideArticle = ({ article, darkMode }) => {
     return url;
   };
 
-  // Prefer controller-provided `image_url`, else use `images[0].url`
   const getArticleImageUrl = (article) => {
     if (!article) return null;
     if (article.image_url) return article.image_url;
@@ -53,26 +52,29 @@ const FeaturedSideArticle = ({ article, darkMode }) => {
   return (
     <Link
       href={`/articles/${article.slug ?? article.id}`}
-      className="group relative block overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 sm:rounded-xl"
+      className="group relative block overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1 dark:border-gray-700 dark:bg-gray-800 sm:rounded-xl"
     >
       <div className="flex h-full flex-col sm:flex-row">
         <div className="relative h-24 w-full overflow-hidden sm:h-auto sm:w-1/3">
           {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={title}
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.parentElement.classList.add(
-                  'bg-gradient-to-br',
-                  'from-gray-100',
-                  'to-gray-200',
-                  'dark:from-gray-800',
-                  'dark:to-gray-700'
-                );
-              }}
-            />
+            <>
+              <img
+                src={imageUrl}
+                alt={title}
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.classList.add(
+                    'bg-gradient-to-br',
+                    'from-gray-100',
+                    'to-gray-200',
+                    'dark:from-gray-800',
+                    'dark:to-gray-700'
+                  );
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </>
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700">
               <div className="text-2xl">📝</div>
@@ -134,7 +136,7 @@ const FeaturedListItem = ({ article, darkMode }) => {
   return (
     <Link
       href={`/articles/${article.slug ?? article.id}`}
-      className="group flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 transition-all hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600 dark:hover:bg-gray-750 sm:p-4"
+      className="group flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 transition-all hover:border-blue-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-white hover:shadow-lg hover:-translate-y-0.5 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600 dark:hover:bg-gray-750 sm:p-4"
     >
       <div className="flex-1">
         <h3 className="mb-1 line-clamp-1 text-sm font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 sm:text-base">
@@ -144,7 +146,7 @@ const FeaturedListItem = ({ article, darkMode }) => {
           {getArticleSummary(article)}
         </p>
         <div className="mt-2 flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
-          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+          <span className="rounded-full bg-gradient-to-r from-blue-100 to-blue-50 px-2 py-0.5 text-blue-800 dark:from-blue-900 dark:to-blue-800 dark:text-blue-200">
             {article.category}
           </span>
           <span>{article.author || 'Unknown'}</span>
@@ -170,14 +172,15 @@ const FeaturedListItem = ({ article, darkMode }) => {
 };
 
 export default function Home() {
-  const {
-    heroArticle,
-    categoryArticles,
-    sideFeaturedArticles,
-    featuredListArticles,
-    latestWritings,
-    categories
-  } = usePage().props;
+const {
+  heroArticle,
+  categoryArticles,
+  sideFeaturedArticles,
+  featuredListArticles,
+  latestWritings,
+  categories,
+weekendReadArticles
+} = usePage().props;
 
   const currentLanguage = 'en';
 
@@ -277,19 +280,19 @@ export default function Home() {
   if (isLoading) {
     return (
       <AppLayout currentLanguage={currentLanguage}>
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
           
           {/* Hero Section Skeleton */}
           <div className="px-2 py-4 sm:flex sm:items-stretch sm:justify-center sm:gap-4 sm:py-6 md:px-0">
             <div className="w-full mb-4 sm:mb-0 sm:w-3/5 sm:min-w-[320px] sm:max-w-[600px]">
               <div className="animate-pulse">
-                <div className="h-48 sm:h-64 md:h-80 rounded-xl bg-gray-300 dark:bg-gray-700"></div>
+                <div className="h-48 sm:h-64 md:h-80 rounded-xl bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600"></div>
               </div>
             </div>
             <div className="flex flex-col gap-3 sm:w-1/5 sm:min-w-[140px] sm:max-w-[180px]">
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className="animate-pulse">
-                  <div className="h-24 rounded-lg bg-gray-300 dark:bg-gray-700"></div>
+                  <div className="h-24 rounded-lg bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600"></div>
                 </div>
               ))}
             </div>
@@ -301,7 +304,7 @@ export default function Home() {
 
   return (
     <AppLayout currentLanguage={currentLanguage}>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       
 
         {/* Hero Section */}
@@ -312,33 +315,35 @@ export default function Home() {
               <div className="group relative">
                 <Link
                   href={`/articles/${heroData.slug ?? heroData.id}`}
-                  className="group-hover:shadow-3xl relative block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg transition-all duration-300 dark:border-gray-700 dark:bg-gray-800 sm:rounded-2xl sm:shadow-2xl"
+                  className="group-hover:shadow-3xl relative block overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-2xl transition-all duration-300 hover:shadow-3xl hover:-translate-y-1 dark:border-gray-600 dark:bg-gray-800"
                 >
                   <div className="relative overflow-hidden min-h-48 sm:min-h-64 md:min-h-80">
                     {getArticleImageUrl(heroData) ? (
-                      <img
-                        src={getArticleImageUrl(heroData)}
-                        alt={getArticleTitle(heroData)}
-                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        style={{ left: 0, top: 0 }}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
+                      <>
+                        <img
+                          src={getArticleImageUrl(heroData)}
+                          alt={getArticleTitle(heroData)}
+                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          style={{ left: 0, top: 0 }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10"></div>
+                      </>
                     ) : (
-                      <div className="flex items-center justify-center h-full w-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 p-4">
-                        <h1 className={`mb-2 text-lg font-bold leading-snug sm:text-xl ${darkMode ? 'text-white' : 'text-gray-900'} md:text-2xl`}>
+                      <div className="flex items-center justify-center h-full w-full bg-gradient-to-br from-blue-500 to-purple-600 dark:from-gray-800 dark:to-gray-700 p-4">
+                        <h1 className={`mb-2 text-lg font-bold leading-snug text-white sm:text-xl md:text-2xl`}>
                           {getArticleTitle(heroData)}
                         </h1>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                   </div>
                   <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-6">
-                    <h1 className="mb-1 line-clamp-2 text-lg font-bold leading-snug text-white transition-colors group-hover:text-gray-100 sm:mb-2 sm:text-xl md:text-2xl">
+                    <h1 className="mb-1 line-clamp-2 text-lg font-bold leading-snug text-white drop-shadow-lg group-hover:text-gray-100 sm:mb-2 sm:text-xl md:text-2xl">
                       {getArticleTitle(heroData)}
                     </h1>
-                    <p className="mb-1 line-clamp-2 text-xs leading-relaxed text-gray-200 sm:mb-2 sm:text-sm md:text-base">
+                    <p className="mb-1 line-clamp-2 text-xs leading-relaxed text-gray-200 drop-shadow sm:mb-2 sm:text-sm md:text-base">
                       {getArticleSummary(heroData)}
                     </p>
                     <div className="flex items-center text-xs text-gray-300 sm:text-sm md:text-base">
@@ -346,7 +351,7 @@ export default function Home() {
                       <span className="mx-1 sm:mx-2">•</span>
                       <span>{formatDate(heroData.created_at)}</span>
                       <span className="mx-1 sm:mx-2">•</span>
-                      <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-200">
+                      <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
                         {heroData.category || 'Uncategorized'}
                       </span>
                     </div>
@@ -379,7 +384,7 @@ export default function Home() {
                   </div>
                 </>
               ) : (
-                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-center dark:border-gray-600 dark:bg-gray-800">
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gradient-to-br from-gray-50 to-white p-4 text-center dark:border-gray-600 dark:from-gray-800 dark:to-gray-900">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {currentLanguage === 'ur' ? 'مزید فیچرڈ مضامین' : 'More Featured Articles'}
                   </p>
@@ -394,12 +399,12 @@ export default function Home() {
           <div className="mx-4 mb-8 mt-12 sm:mx-6 sm:mb-12 sm:mt-20 lg:mx-8 xl:mx-8">
             <div className="mb-6 sm:mb-8">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xl font-bold dark:text-white sm:text-2xl">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
                   {currentLanguage === 'ur' ? 'فیچرڈ مضامین' : 'Featured Articles'}
                 </h2>
                 <Link
                   href={`/category/all?filter=featured`}
-                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   {currentLanguage === 'ur' ? 'سب دیکھیں' : 'View All'} →
                 </Link>
@@ -413,9 +418,87 @@ export default function Home() {
           </div>
         )}
 
-   {latestWritings && latestWritings.length > 0 && (
+        {/* Weekend Reads Section */}
+        {weekendReadArticles && weekendReadArticles.length > 0 && (
+          <section className="px-4 sm:px-6 md:px-8 lg:px-12 mt-12 mb-16">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                WEEKEND READS
+              </h2>
+
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {weekendReadArticles.map((article) => {
+                const imageUrl = article.image_url 
+                  || (article.images?.length ? `/storage/${article.images[0].path?.replace(/^storage\//,'')}` : null);
+
+                return (
+                  <Link 
+                    key={article.id}
+                    href={`/articles/${article.slug ?? article.id}`}
+                    className="group flex flex-col lg:flex-row gap-6 p-5 rounded-2xl border border-gray-300 bg-white shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 dark:border-gray-600 dark:bg-gray-800"
+                  >
+                    {/* Image Container - Left Side */}
+                    <div className="lg:w-2/5">
+                      <div className="relative h-64 w-full overflow-hidden rounded-xl">
+                        {imageUrl ? (
+                          <>
+                            <img
+                              src={imageUrl}
+                              alt={article.title}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          </>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700">
+                            <span className="text-4xl">📸</span>
+                          </div>
+                        )}
+                        
+                        {/* Weekend Badge */}
+                        <span className="absolute top-4 left-4 bg-black/90 text-white text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm">
+                          WEEKEND
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Text Content - Right Side */}
+                    <div className="lg:w-3/5 flex flex-col justify-center">
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 mb-4 leading-tight">
+                        {article.title}
+                      </h3>
+
+                      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
+                        {article.summary || (article.content ? 
+                          article.content.substring(0, 180) + (article.content.length > 180 ? '...' : '') 
+                          : '')}
+                      </p>
+
+                      <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        <span className="font-medium">{article.author || 'Unknown'}</span>
+                        <span className="mx-2">•</span>
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 dark:bg-gray-700">{article.category}</span>
+                        <span className="mx-2">•</span>
+                        <span>{new Date(article.created_at).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}</span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Latest Writings */}
+        {latestWritings && latestWritings.length > 0 && (
           <div className="mx-4 mb-8 sm:mx-6 lg:mx-8">
-            <h2 className="mb-3 text-xl font-bold dark:text-white sm:text-2xl text-left">
+            <h2 className="mb-3 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl text-left">
               {currentLanguage === 'ur' ? 'تازہ ترین تحریریں' : 'Latest Writings'}
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -423,28 +506,31 @@ export default function Home() {
                 <Link
                   key={article.id}
                   href={`/articles/${article.slug ?? article.id}`}
-                  className="group overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+                  className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md transition-all hover:shadow-xl hover:-translate-y-1 dark:border-gray-700 dark:bg-gray-800"
                 >
                   {/* Small thumbnail like other cards */}
                   <div className="relative overflow-hidden h-28 sm:h-32">
                     {getArticleImageUrl(article) ? (
-                      <img
-                        src={getArticleImageUrl(article)}
-                        alt={getArticleTitle(article)}
-                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.parentElement.classList.add(
-                            'bg-gradient-to-br',
-                            'from-gray-200',
-                            'to-gray-300',
-                            'dark:from-gray-700',
-                            'dark:to-gray-600'
-                          );
-                        }}
-                      />
+                      <>
+                        <img
+                          src={getArticleImageUrl(article)}
+                          alt={getArticleTitle(article)}
+                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.classList.add(
+                              'bg-gradient-to-br',
+                              'from-blue-50',
+                              'to-purple-50',
+                              'dark:from-gray-700',
+                              'dark:to-gray-600'
+                            );
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </>
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700">
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700">
                         <svg
                           className="h-6 w-6 text-gray-400 sm:h-8 sm:w-8 dark:text-gray-500"
                           fill="none"
@@ -462,7 +548,7 @@ export default function Home() {
                       {getArticleTitle(article)}
                     </h3>
                     <div className="mb-2 flex items-center justify-between">
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                      <span className="rounded-full bg-gradient-to-r from-blue-100 to-blue-50 px-2 py-0.5 text-xs font-medium text-blue-800 dark:from-blue-900 dark:to-blue-800 dark:text-blue-200">
                         {article.category}
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -520,7 +606,7 @@ export default function Home() {
                     {category.articles.map((article, index) => (
                       <div
                         key={article.id}
-                        className={`group relative overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md sm:rounded-lg md:rounded-xl dark:border-gray-700 dark:bg-gray-800 ${
+                        className={`group relative overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl sm:rounded-xl dark:border-gray-700 dark:bg-gray-800 ${
                           index === 0 && category.articles.length > 3 ? 'col-span-2 sm:col-span-2 lg:col-span-2' : ''
                         }`}
                       >
@@ -532,7 +618,7 @@ export default function Home() {
                                 <img
                                   src={getArticleImageUrl(article)}
                                   alt={getArticleTitle(article)}
-                                  className={`w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+                                  className={`w-full object-cover transition-transform duration-500 group-hover:scale-110 ${
                                     index === 0 && category.articles.length > 3
                                       ? 'h-24 sm:h-32 md:h-40 lg:h-48 xl:h-56'
                                       : 'h-16 sm:h-24 md:h-32 lg:h-36 xl:h-44'
@@ -541,18 +627,18 @@ export default function Home() {
                                     e.target.style.display = 'none';
                                     e.target.parentElement.classList.add(
                                       'bg-gradient-to-br',
-                                      'from-gray-200',
-                                      'to-gray-300',
+                                      'from-blue-50',
+                                      'to-purple-50',
                                       'dark:from-gray-700',
                                       'dark:to-gray-600',
                                     );
                                   }}
                                 />
-                                <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10"></div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                               </>
                             ) : (
                               <div
-                                className={`flex w-full items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 ${
+                                className={`flex w-full items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-600 ${
                                   index === 0 && category.articles.length > 3
                                     ? 'h-24 sm:h-32 md:h-40 lg:h-48 xl:h-56'
                                     : 'h-16 sm:h-24 md:h-32 lg:h-36 xl:h-44'
@@ -587,7 +673,7 @@ export default function Home() {
                               {getArticleTitle(article)}
                             </h3>
                             <div className="mb-1 flex items-center">
-                              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200 sm:text-xs">
+                              <span className="rounded-full bg-gradient-to-r from-blue-100 to-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-800 dark:from-blue-900 dark:to-blue-800 dark:text-blue-200 sm:text-xs">
                                 {article.category}
                               </span>
                             </div>

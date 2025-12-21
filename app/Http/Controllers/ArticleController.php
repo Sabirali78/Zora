@@ -74,7 +74,7 @@ public function formatArticle($article, $titleLimit = 12, $summaryLimit = 20)
     ];
 }
 
-  public function index(Request $request)
+ public function index(Request $request)
 {
     // English-only app; default language is 'en'
     $language = 'en';
@@ -89,15 +89,20 @@ public function formatArticle($article, $titleLimit = 12, $summaryLimit = 20)
         'Miscellaneous' => 'Miscellaneous'
     ];
 
-    // STRATEGY: Get featured articles first, then exclude them from other sections
-    
-    // Get hero article (latest featured)
+    // STRATEGY: Track all used article IDs to prevent duplicates
+    $usedArticleIds = [];
+
+    // 1. Get hero article (latest featured)
     $heroArticle = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
         ->where('is_featured', true)
         ->orderBy('created_at', 'desc')
         ->first();
 
-    // Get all featured articles for featured sections
+    if ($heroArticle) {
+        $usedArticleIds[] = $heroArticle->id;
+    }
+
+    // 2. Get all featured articles for featured sections
     $featuredArticlesQuery = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
         ->where('is_featured', true)
         ->orderBy('created_at', 'desc');
@@ -110,6 +115,11 @@ public function formatArticle($article, $titleLimit = 12, $summaryLimit = 20)
         ->where('id', '!=', $heroArticleId)
         ->take(3)
         ->values();
+
+    // Add side featured article IDs to used list
+    foreach ($sideFeaturedArticles as $article) {
+        $usedArticleIds[] = $article->id;
+    }
     
     // Get 10 featured articles for featured list (excluding hero and side articles)
     $excludeIds = $sideFeaturedArticles->pluck('id')->toArray();
@@ -122,15 +132,35 @@ public function formatArticle($article, $titleLimit = 12, $summaryLimit = 20)
         ->take(10)
         ->values();
 
-    // For category sections, we want to exclude ALL featured articles
-    $allFeaturedArticleIds = $allFeaturedArticles->pluck('id')->toArray();
+    // Add featured list article IDs to used list
+    foreach ($featuredListArticles as $article) {
+        $usedArticleIds[] = $article->id;
+    }
 
-    // Get latest articles by each category (excluding featured articles)
+    // 3. Get weekend reads (priority section - should appear even if featured)
+    $weekendReadArticles = Article::with(['images' => function($q) {
+        $q->orderBy('id', 'desc');
+    }])
+    ->where('tags', 'like', '%weekend%')
+    ->whereNotIn('id', $usedArticleIds) // Don't show articles already used
+    ->orderBy('created_at', 'desc')
+    ->take(2)
+    ->get()
+    ->map(function($article) {
+        return $this->formatArticle($article, 12, 20);
+    });
+
+    // Add weekend article IDs to used list
+    foreach ($weekendReadArticles as $article) {
+        $usedArticleIds[] = $article['id'];
+    }
+
+    // 4. Get latest articles by each category (excluding all used articles)
     $categoryArticles = [];
     foreach ($categories as $categoryKey => $categoryName) {
-            $articles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
+        $articles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
             ->where('category', $categoryKey)
-            ->whereNotIn('id', $allFeaturedArticleIds) // Exclude featured articles
+            ->whereNotIn('id', $usedArticleIds) // Exclude all articles already shown
             ->orderBy('created_at', 'desc')
             ->take(6)
             ->get()
@@ -143,14 +173,19 @@ public function formatArticle($article, $titleLimit = 12, $summaryLimit = 20)
                 'name' => $categoryName,
                 'articles' => $articles
             ];
+            
+            // Add category article IDs to used list (optional - if you want to prevent duplicates across categories)
+            // foreach ($articles as $article) {
+            //     $usedArticleIds[] = $article['id'];
+            // }
         }
     }
 
-    // Get 6 latest articles overall for "Latest Writings" section (excluding ALL featured articles)
+    // 5. Get latest articles overall for "Latest Writings" section (excluding all used articles)
     $latestWritings = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
-        ->whereNotIn('id', $allFeaturedArticleIds) // Exclude featured articles
+        ->whereNotIn('id', $usedArticleIds) // Exclude all articles already shown
         ->orderBy('created_at', 'desc')
-        ->take(6)
+        ->take(3)
         ->get()
         ->map(function($article) {
             return $this->formatArticle($article, 12, 20);
@@ -166,6 +201,7 @@ public function formatArticle($article, $titleLimit = 12, $summaryLimit = 20)
             return $this->formatArticle($article, 12, 20);
         }),
         'latestWritings' => $latestWritings,
+        'weekendReadArticles' => $weekendReadArticles,
         'categories' => $categories,
         'darkMode' => false,
         'currentLanguage' => 'en',

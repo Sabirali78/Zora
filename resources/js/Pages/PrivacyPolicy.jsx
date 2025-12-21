@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/layouts/app-layout';
+import { Head } from '@inertiajs/react';
+
 // ...existing code...
 
 import { usePage } from '@inertiajs/react';
@@ -8,6 +10,10 @@ export default function PrivacyPolicy(props) {
   const [darkMode, setDarkMode] = useState(
     typeof window !== 'undefined' && window.localStorage.getItem('theme') === 'dark'
   );
+
+  const pageTitle = "The WriteLine – Privacy & Policy";
+  const pageDescription = "Read the Privacy & Policy on The WriteLine.";
+
   // TODO: Replace with Inertia-provided language prop or server-side value
 
   useEffect(() => {
@@ -54,6 +60,11 @@ export default function PrivacyPolicy(props) {
 
   return (
     <AppLayout darkMode={darkMode}>
+           <Head>
+              <title>{pageTitle}</title>
+              <meta name="description" content={pageDescription} />
+            </Head>
+            
       <div className='bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen' dir={currentLanguage === 'ur' ? 'rtl' : 'ltr'}>
         <main className="max-w-3xl mx-auto py-12 px-4">
           <h1 className="text-4xl font-bold mb-6 text-center">

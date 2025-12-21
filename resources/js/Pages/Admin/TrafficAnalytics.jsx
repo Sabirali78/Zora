@@ -4,7 +4,6 @@ import AdminNavbar from '@/components/AdminNavbar';
 
 export default function TrafficAnalytics({
     period,
-    pageType,
     startDate,
     endDate,
     totalVisits,
@@ -12,16 +11,14 @@ export default function TrafficAnalytics({
     bounceRate,
     visitsOverTime,
     timeOfDayStats,
-    pageTypeBreakdown,
     deviceStats,
     browserStats,
-    geoStats,
     referrerStats,
     topArticles,
     peakDays,
     realtimeActivity,
+    articleViews, // Add this since your controller has it
     periodOptions,
-    pageTypeOptions,
 }) {
     const [darkMode, setDarkMode] = useState(window.localStorage.getItem('theme') === 'dark');
     const [activeTab, setActiveTab] = useState('overview');
@@ -100,20 +97,7 @@ export default function TrafficAnalytics({
                                 <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                     Page Type
                                 </label>
-                                <select
-                                    value={pageType}
-                                    onChange={(e) => handleFilterChange('page_type', e.target.value)}
-                                    className={`w-full sm:w-40 px-3 py-2 rounded-lg border ${darkMode 
-                                        ? 'bg-gray-800 border-gray-700 text-white' 
-                                        : 'bg-white border-gray-300 text-gray-900'
-                                    }`}
-                                >
-                                    {pageTypeOptions.map((option) => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
+                       
                             </div>
                         </div>
                     </div>
@@ -234,27 +218,50 @@ export default function TrafficAnalytics({
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {/* Page Type Breakdown */}
-                            <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`}>
-                                <h2 className="text-xl font-bold mb-6">Page Type Breakdown</h2>
-                                <div className="space-y-4">
-                                    {pageTypeBreakdown.map((item, index) => (
-                                        <div key={index}>
-                                            <div className="flex justify-between mb-1">
-                                                <span className="font-medium">{item.page_type || 'Unknown'}</span>
-                                                <span className="text-sm text-gray-500 dark:text-gray-400">
-                                                    {item.visits} visits ({item.unique_visitors} unique)
-                                                </span>
-                                            </div>
-                                            <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2">
-                                                <div 
-                                                    className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full"
-                                                    style={{ width: `${calculatePercentage(item.visits, totalVisits)}%` }}
-                                                ></div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                          {/* Article Views Breakdown */}
+<div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`}>
+    <h2 className="text-xl font-bold mb-6">Article Engagement</h2>
+    {articleViews && (
+        <div className="space-y-6">
+            <div>
+                <div className="flex justify-between mb-1">
+                    <span className="font-medium">Total Article Views</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {formatNumber(articleViews.total_visits || 0)}
+                    </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2">
+                    <div 
+                        className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full"
+                        style={{ width: `${calculatePercentage(articleViews.total_visits || 0, totalVisits)}%` }}
+                    ></div>
+                </div>
+            </div>
+            
+            <div>
+                <div className="flex justify-between mb-1">
+                    <span className="font-medium">Articles Viewed</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {formatNumber(articleViews.articles_viewed || 0)} articles
+                    </span>
+                </div>
+            </div>
+            
+            <div>
+                <div className="flex justify-between mb-1">
+                    <span className="font-medium">Average Time on Page</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {articleViews.avg_duration 
+                            ? (articleViews.avg_duration > 60 
+                                ? `${Math.floor(articleViews.avg_duration / 60)}m ${articleViews.avg_duration % 60}s`
+                                : `${articleViews.avg_duration}s`)
+                            : 'N/A'}
+                    </span>
+                </div>
+            </div>
+        </div>
+    )}
+</div>
 
                             {/* Device Stats */}
                             <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`}>
@@ -371,24 +378,27 @@ export default function TrafficAnalytics({
                             </div>
                         </div>
 
-                        {/* Geographic Stats */}
-                        <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`}>
-                            <h2 className="text-xl font-bold mb-6">Top Locations</h2>
-                            <div className="space-y-4">
-                                {geoStats.map((item, index) => (
-                                    <div key={index} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg">
-                                        <div>
-                                            <div className="font-medium">{item.country || 'Unknown'}</div>
-                                            <div className="text-sm text-gray-500 dark:text-gray-400">{item.city || ''}</div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="font-semibold">{formatNumber(item.visits)}</div>
-                                            <div className="text-sm text-gray-500 dark:text-gray-400">{item.unique_visitors} unique</div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                       {/* Top IP Addresses */}
+<div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`}>
+    <h2 className="text-xl font-bold mb-6">Top Visitor IPs</h2>
+    <div className="space-y-3">
+        {realtimeActivity.slice(0, 8).map((activity, index) => (
+            <div key={index} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg">
+                <div>
+                    <div className="font-medium font-mono text-sm">{activity.ip || 'Unknown'}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {activity.browser} • {activity.device_type}
+                    </div>
+                </div>
+                <div className="text-right">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {activity.time_ago}
+                    </div>
+                </div>
+            </div>
+        ))}
+    </div>
+</div>
 
                         {/* Referrer Stats */}
                         <div className={`p-6 rounded-xl ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`}>
@@ -513,22 +523,6 @@ export default function TrafficAnalytics({
                         </div>
                     </div>
                 )}
-
-                {/* Export Section */}
-                <div className={`mt-8 p-6 rounded-xl ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`}>
-                    <h2 className="text-xl font-bold mb-4">Export Analytics</h2>
-                    <div className="flex flex-wrap gap-3">
-                        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">
-                            Export as PDF
-                        </button>
-                        <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium">
-                            Export as CSV
-                        </button>
-                        <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium">
-                            Generate Report
-                        </button>
-                    </div>
-                </div>
             </main>
         </div>
     );

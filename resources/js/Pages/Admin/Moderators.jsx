@@ -12,6 +12,10 @@ export default function Moderators() {
     if (!confirm('Verify this moderator?')) return;
     router.post(route('admin.moderators.verify', { id }));
   }
+  function handleUnverify(id) {
+  if (!confirm('Unverify this moderator?')) return;
+  router.post(route('admin.moderators.unverify', { id }));
+}
 
   React.useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
@@ -25,7 +29,6 @@ export default function Moderators() {
           <h1 className="text-xl font-bold">Moderators</h1>
         </div>
         <div className="flex items-center justify-between mb-4">
-  <h1 className="text-xl font-bold">Moderators</h1>
   <Link
     href={route('admin.moderators.create')}
     className="px-4 py-2 bg-green-600 text-white rounded"
@@ -35,35 +38,37 @@ export default function Moderators() {
 </div>
 
         <div className="bg-white dark:bg-gray-800 rounded shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-gray-300">Name</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-gray-300">Email</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-gray-300">Verified</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-gray-300">Created</th>
-                <th className="px-4 py-2 text-right text-sm font-medium text-gray-500 dark:text-gray-300">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {moderators.map(mod => (
-                <tr key={mod.id}>
-                  <td className="px-4 py-2 text-sm">{mod.name}</td>
-                  <td className="px-4 py-2 text-sm">{mod.email}</td>
-                  <td className="px-4 py-2 text-sm">{mod.email_verified_at ? new Date(mod.email_verified_at).toLocaleString() : 'No'}</td>
-                  <td className="px-4 py-2 text-sm">{new Date(mod.created_at).toLocaleString()}</td>
-                  <td className="px-4 py-2 text-sm text-right">
-                    <div className="inline-flex items-center gap-2">
-                      <Link href={route('admin.moderators.logs', { id: mod.id })} className="px-2 py-1 bg-indigo-600 text-white rounded text-sm">View Logs</Link>
-                      {!mod.email_verified_at && (
-                        <button onClick={() => handleVerify(mod.id)} className="px-2 py-1 bg-green-600 text-white rounded text-sm">Verify</button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+  <thead className="bg-gray-50 dark:bg-gray-700">
+    <tr>
+      <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-gray-300">Name</th>
+      <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-gray-300">Email</th>
+      <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-gray-300">Verified</th>
+      <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-gray-300">Created</th>
+      <th className="px-4 py-2 text-right text-sm font-medium text-gray-500 dark:text-gray-300">Actions</th>
+    </tr>
+  </thead>
+  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+    {moderators.map(mod => (
+      <tr key={mod.id}>
+        <td className="px-4 py-2 text-sm">{mod.name}</td>
+        <td className="px-4 py-2 text-sm">{mod.email}</td>
+        <td className="px-4 py-2 text-sm">{mod.email_verified_at ? new Date(mod.email_verified_at).toLocaleString() : 'No'}</td>
+        <td className="px-4 py-2 text-sm">{new Date(mod.created_at).toLocaleString()}</td>
+        <td className="px-4 py-2 text-sm text-right">
+          <div className="inline-flex items-center gap-2">
+            <Link href={route('admin.moderators.logs', { id: mod.id })} className="px-2 py-1 bg-indigo-600 text-white rounded text-sm">View Logs</Link>
+            {!mod.email_verified_at ? (
+              <button onClick={() => handleVerify(mod.id)} className="px-2 py-1 bg-green-600 text-white rounded text-sm">Verify</button>
+            ) : (
+              <button onClick={() => handleUnverify(mod.id)} className="px-2 py-1 bg-red-600 text-white rounded text-sm">Unverify</button>
+            )}
+          </div>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
         </div>
 
         {/* Pagination simple */}

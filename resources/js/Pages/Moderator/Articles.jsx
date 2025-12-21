@@ -9,6 +9,13 @@ export default function ModeratorArticles({
   moderator = null 
 }) {
   const [deletingId, setDeletingId] = useState(null);
+  const [darkMode, setDarkMode] = useState(
+    window.localStorage.getItem('theme') === 'dark'
+  );
+  
+  React.useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
   
   const myArticles = Array.isArray(articles) ? articles : (articles?.data || []);
   const allArticlesList = Array.isArray(allArticles) ? allArticles : (allArticles?.data || []);
@@ -25,7 +32,13 @@ export default function ModeratorArticles({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
-      <ModeratorNavbar moderatorName={moderatorName} moderator={moderator} />
+      <ModeratorNavbar 
+        moderatorName={moderatorName} 
+        moderator={moderator}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+      />
+      
 
       <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* Header with Create Button */}

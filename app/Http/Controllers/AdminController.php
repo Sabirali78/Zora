@@ -102,7 +102,7 @@ public function storeModerator(Request $request)
         // Latest 20 Logs
         $latestLogs = TrafficLog::with('article:id,title,slug')
             ->latest()
-            ->limit(20)
+            ->limit(10)
             ->get()
             ->map(function($log) {
                 return [
@@ -361,6 +361,28 @@ public function storeModerator(Request $request)
         }
         
         return redirect()->back()->with('success', 'Moderator verified successfully.');
+    }
+
+     public function unverifyModerator(Request $request, $id)
+    {
+        $adminId = $request->session()->get('admin_id');
+        $moderator = User::where('role', 'moderator')->findOrFail($id);
+        $moderator->email_verified_at = null;
+        $moderator->save();
+        
+        if ($adminId) {
+            AdminLog::create([
+                'admin_id' => $adminId,
+                'action' => 'unverify_moderator',
+                'model_type' => 'User',
+                'model_id' => $moderator->id,
+                'details' => 'Unverified moderator: ' . $moderator->email,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        }
+        
+        return redirect()->back()->with('success', 'Moderator unverified successfully.');
     }
 
     public function moderatorLogs(Request $request, $id)
@@ -679,6 +701,70 @@ public function storeModerator(Request $request)
         
         return response()->json($stats);
     }
+
+
+    private function getDateRange($period)
+{
+    $endDate = now()->endOfDay();
+    
+    switch ($period) {
+        case '7days':
+            $startDate = now()->subDays(7)->startOfDay();
+            break;
+        case '30days':
+            $startDate = now()->subDays(30)->startOfDay();
+            break;
+        case '90days':
+            $startDate = now()->subDays(90)->startOfDay();
+            break;
+        case 'year':
+            $startDate = now()->subYear()->startOfDay();
+            break;
+        case 'all':
+            $startDate = TrafficLog::min('created_at') ? Carbon::parse(TrafficLog::min('created_at')) : now()->subYear();
+            break;
+        default:
+            $startDate = now()->subDays(7)->startOfDay();
+    }
+    
+    return ['start' => $startDate, 'end' => $endDate];
+}
+
+
+private function calculateAvgTimeOnArticle($articleId, $startDate, $endDate)
+{
+    // This is a simplified version - you might want to implement session tracking
+    $logs = TrafficLog::where('article_id', $articleId)
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->orderBy('created_at')
+        ->get();
+
+    if ($logs->count() < 2) {
+        return 0;
+    }
+
+    // Calculate average time between visits to same article from same IP (simplified)
+    $totalTime = 0;
+    $count = 0;
+
+    foreach ($logs->groupBy('ip') as $ipLogs) {
+        if ($ipLogs->count() > 1) {
+            $ipLogs = $ipLogs->sortBy('created_at');
+            for ($i = 0; $i < $ipLogs->count() - 1; $i++) {
+                $timeDiff = $ipLogs[$i]->created_at->diffInSeconds($ipLogs[$i + 1]->created_at);
+                // If time difference is reasonable (less than 1 hour), assume it's the same session
+                if ($timeDiff < 3600) {
+                    $totalTime += $timeDiff;
+                    $count++;
+                }
+            }
+        }
+    }
+
+    return $count > 0 ? round($totalTime / $count) : 0;
+}
+
+
 public function trafficAnalytics(Request $request)
 {
     // Require admin authentication
@@ -688,8 +774,8 @@ public function trafficAnalytics(Request $request)
 
     $period = $request->input('period', '7days'); // 7days, 30days, 90days, year
     
-    // Determine date range
-$dateRange = $this->getDateRange($period);
+    // Determine date range - FIXED METHOD CALL
+    $dateRange = $this->getDateRange($period); // This should match your method name
     $startDate = $dateRange['start'];
     $endDate = $dateRange['end'];
 
@@ -708,6 +794,7 @@ $dateRange = $this->getDateRange($period);
     
     // ============ VISITS OVER TIME ============
     $visitsOverTime = $this->getVisitsOverTime($startDate, $endDate);
+    
     
     // ============ TOP ARTICLES ============
     $topArticles = TrafficLog::select(
@@ -765,6 +852,8 @@ $dateRange = $this->getDateRange($period);
 
     // ============ BROWSER/DEVICE DETECTION FROM USER_AGENT ============
     // Extract basic browser info from user_agent
+     // ============ BROWSER/DEVICE DETECTION FROM USER_AGENT ============
+    // Extract basic browser info from user_agent - FIXED
     $browserStats = TrafficLog::select(
             DB::raw('
                 CASE 
@@ -777,17 +866,22 @@ $dateRange = $this->getDateRange($period);
                     ELSE "Other"
                 END as browser
             '),
-            DB::raw('COUNT(*) as visits'),
-            DB::raw('ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM traffic_logs WHERE created_at BETWEEN ? AND ?), 2) as percentage')
+            DB::raw('COUNT(*) as visits')
         )
         ->whereBetween('created_at', [$startDate, $endDate])
         ->groupBy('browser')
-        ->setBindings([$startDate, $endDate])
         ->orderByDesc('visits')
         ->limit(10)
-        ->get();
+        ->get()
+        ->map(function ($item) use ($totalVisits) {
+            return [
+                'browser' => $item->browser,
+                'visits' => $item->visits,
+                'percentage' => $totalVisits > 0 ? round(($item->visits / $totalVisits) * 100, 2) : 0,
+            ];
+        });
 
-    // Extract device type from user_agent
+    // Extract device type from user_agent - FIXED
     $deviceStats = TrafficLog::select(
             DB::raw('
                 CASE 
@@ -796,14 +890,19 @@ $dateRange = $this->getDateRange($period);
                     ELSE "Desktop"
                 END as device_type
             '),
-            DB::raw('COUNT(*) as visits'),
-            DB::raw('ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM traffic_logs WHERE created_at BETWEEN ? AND ?), 2) as percentage')
+            DB::raw('COUNT(*) as visits')
         )
         ->whereBetween('created_at', [$startDate, $endDate])
         ->groupBy('device_type')
-        ->setBindings([$startDate, $endDate])
         ->orderByDesc('visits')
-        ->get();
+        ->get()
+        ->map(function ($item) use ($totalVisits) {
+            return [
+                'device_type' => $item->device_type,
+                'visits' => $item->visits,
+                'percentage' => $totalVisits > 0 ? round(($item->visits / $totalVisits) * 100, 2) : 0,
+            ];
+        });
 
     // ============ REFERRER STATS ============
     $referrerStats = TrafficLog::select(
@@ -822,14 +921,19 @@ $dateRange = $this->getDateRange($period);
                     ELSE "Other Referrals"
                 END as source
             '),
-            DB::raw('COUNT(*) as visits'),
-            DB::raw('ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM traffic_logs WHERE created_at BETWEEN ? AND ?), 2) as percentage')
+            DB::raw('COUNT(*) as visits')
         )
         ->whereBetween('created_at', [$startDate, $endDate])
         ->groupBy('source')
-        ->setBindings([$startDate, $endDate])
         ->orderByDesc('visits')
-        ->get();
+        ->get()
+        ->map(function ($item) use ($totalVisits) {
+            return [
+                'source' => $item->source,
+                'visits' => $item->visits,
+                'percentage' => $totalVisits > 0 ? round(($item->visits / $totalVisits) * 100, 2) : 0,
+            ];
+        });
 
     // ============ REAL-TIME ACTIVITY (Last 24 hours) ============
     $realtimeActivity = TrafficLog::with(['article:id,title,slug'])

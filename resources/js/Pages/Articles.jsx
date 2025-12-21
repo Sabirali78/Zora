@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Head } from '@inertiajs/react';
 import { usePage, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Grid, List, Search, Tag, Clock, User, Eye, TrendingUp } from 'lucide-react';
@@ -9,11 +10,17 @@ export default function Articles() {
         darkMode, 
         filter, 
         filterValue,
-        category = null 
+        category = null,
+        // Add these props to check what's being passed
+        currentCategory = null,
+        categorySlug = null,
+        categoryName = null
     } = usePage().props;
 
     const [viewMode, setViewMode] = useState('grid');
     const [sortBy, setSortBy] = useState('newest');
+    const [pageTitle, setPageTitle] = useState('All Insights – The WriteLine');
+    const [pageDescription, setPageDescription] = useState('Read the latest news, opinion pieces, creative stories, and tech articles on The WriteLine.');
 
     // Optimized image URL getter
     const getArticleImageUrl = useMemo(() => {
@@ -41,6 +48,109 @@ export default function Articles() {
         return Math.ceil(wordCount / wordsPerMinute);
     }, []);
 
+    // Get category display name - IMPROVED VERSION
+    const getCategoryDisplayName = () => {
+        const titleCase = (str) =>
+            String(str || '')
+                .replace(/-/g, ' ')
+                .split(' ')
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                .join(' ');
+
+        // First check if we have direct category name from props
+        if (categoryName) {
+            return categoryName;
+        }
+        
+        // Check if we have currentCategory object
+        if (currentCategory) {
+            if (typeof currentCategory === 'object') {
+                return currentCategory.name || currentCategory.title || 
+                       (currentCategory.slug ? titleCase(currentCategory.slug) : 'All Insights');
+            }
+            return String(currentCategory);
+        }
+        
+        // Check if we have category slug
+        if (categorySlug) {
+            return titleCase(categorySlug);
+        }
+        
+        // Check the old category prop (for backward compatibility)
+        if (category) {
+            if (typeof category === 'object') {
+                return category.name || category.title || 
+                       (category.slug ? titleCase(category.slug) : 'All Insights');
+            }
+            if (typeof category === 'string') {
+                const normalized = category.trim();
+                if (normalized === '' || normalized === 'all' || normalized === 'all-articles' || normalized === 'all-insights') {
+                    return 'All Insights';
+                }
+                return titleCase(normalized);
+            }
+        }
+        
+        // Check URL path as fallback
+        if (typeof window !== 'undefined') {
+            const path = window.location.pathname;
+            if (path.startsWith('/category/')) {
+                const slug = path.replace('/category/', '').split('/')[0];
+                if (slug) {
+                    return titleCase(slug);
+                }
+            }
+        }
+
+        // Default for main articles page
+        return 'All Insights';
+    };
+
+    // Get page title based on category
+    const getPageTitle = () => {
+        const categoryName = getCategoryDisplayName();
+        
+        if (categoryName === 'All Insights') {
+            return 'All Insights – The WriteLine';
+        }
+        
+        return `${categoryName} – The WriteLine`;
+    };
+
+    // Get page description based on category
+    const getPageDescription = () => {
+        const categoryName = getCategoryDisplayName();
+        const count = articles?.length || 0;
+        
+        if (categoryName === 'All Insights') {
+            return 'Read the latest news, opinion pieces, creative stories, and tech articles on The WriteLine.';
+        }
+        
+        return `Browse ${count} ${categoryName.toLowerCase()} articles on The WriteLine.`;
+    };
+
+    // Update SEO meta tags on component mount or when props change
+    useEffect(() => {
+        const newTitle = getPageTitle();
+        const newDescription = getPageDescription();
+        
+        setPageTitle(newTitle);
+        setPageDescription(newDescription);
+        
+        // Also update document title immediately
+        document.title = newTitle;
+        
+        // Debug: Log what props we have
+        console.log('Category props:', { 
+            category, 
+            currentCategory, 
+            categorySlug, 
+            categoryName,
+            displayName: getCategoryDisplayName(),
+            path: typeof window !== 'undefined' ? window.location.pathname : 'server'
+        });
+    }, [category, currentCategory, categorySlug, categoryName, articles]);
+
     // Sort articles based on selected option
     const sortedArticles = useMemo(() => {
         const articlesCopy = [...(articles || [])];
@@ -59,35 +169,6 @@ export default function Articles() {
         }
     }, [articles, sortBy]);
 
-    // Get category display name
-    const getCategoryDisplayName = () => {
-        const titleCase = (str) =>
-            String(str || '')
-                .replace(/-/g, ' ')
-                .split(' ')
-                .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-                .join(' ');
-
-        if (category) {
-            if (typeof category === 'object') {
-                return category.name || category.title || (category.slug ? titleCase(category.slug) : 'All Articles');
-            }
-            if (typeof category === 'string') {
-                const normalized = category.trim();
-                if (normalized === '' || normalized === 'all' || normalized === 'all-articles') {
-                    return 'All Articles';
-                }
-                return titleCase(normalized);
-            }
-        }
-
-        if (articles && articles.length > 0 && articles[0].category) {
-            return articles[0].category;
-        }
-
-        return 'All Articles';
-    };
-
     // Featured articles (first 3)
     const featuredArticles = useMemo(() => 
         sortedArticles.filter(article => article.is_featured).slice(0, 3), 
@@ -99,89 +180,85 @@ export default function Articles() {
         sortedArticles.filter(article => !article.is_featured), 
         [sortedArticles]
     );
-    // Get page title based on URL path
-const getPageTitle = () => {
-    const currentPath = window.location.pathname;
-    
-    // If this is the /articles page
-    if (currentPath === '/articles' || currentPath === '/articles/') {
-        return 'All Insights';
-    }
-    
-    // If this is a category page
-    if (currentPath.startsWith('/category/')) {
-        return getCategoryDisplayName();
-    }
-    
-    // Default fallback
-    return getCategoryDisplayName();
-};
 
-// Get subtitle based on page type
-const getPageSubtitle = () => {
-    const currentPath = window.location.pathname;
-    
-    if (currentPath === '/articles' || currentPath === '/articles/') {
-        return 'Browse all articles, stories, and insights';
-    }
-    
-    if (currentPath.startsWith('/category/')) {
+    // Get display title for UI (not SEO)
+    const getDisplayTitle = () => {
+        return getCategoryDisplayName();
+    };
+
+    // Get display subtitle for UI
+    const getDisplaySubtitle = () => {
+        const categoryName = getCategoryDisplayName();
         const count = articles?.length || 0;
+        
+        if (categoryName === 'All Insights') {
+            return 'Browse all articles, stories, and insights';
+        }
+        
         return count === 1 
             ? `${count} article found in this category` 
             : `${count} articles found in this category`;
-    }
-    
-    return 'Browse articles and insights';
-};
+    };
 
     return (
         <AppLayout darkMode={darkMode}>
+            <Head>
+                <title>{pageTitle}</title>
+                <meta name="description" content={pageDescription} />
+                <meta name="keywords" content="News, Opinion, Analysis, Fiction, Stories, Tech, Miscellaneous" />
+                
+                {/* Open Graph Meta Tags */}
+                <meta property="og:title" content={pageTitle} />
+                <meta property="og:description" content={pageDescription} />
+                <meta property="og:type" content="website" />
+                
+                {/* Twitter Meta Tags */}
+                <meta name="twitter:title" content={pageTitle} />
+                <meta name="twitter:description" content={pageDescription} />
+            </Head>
+
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
                 <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
                     {/* Page Header with Breadcrumb */}
                     <div className="mb-8">
-    <nav className="flex mb-4" aria-label="Breadcrumb">
-        <ol className="inline-flex items-center space-x-1 md:space-x-3">
-            <li className="inline-flex items-center">
-                <Link 
-                    href="/" 
-                    className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-red-600 dark:text-gray-400 dark:hover:text-white"
-                >
-                    Home
-                </Link>
-            </li>
-            <li>
-                <div className="flex items-center">
-                    <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                    <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">
-                        {window.location.pathname === '/articles' || window.location.pathname === '/articles/' 
-                            ? 'All Insights' 
-                            : getCategoryDisplayName()}
-                    </span>
-                </div>
-            </li>
-        </ol>
-    </nav>
+                        <nav className="flex mb-4" aria-label="Breadcrumb">
+                            <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                                <li className="inline-flex items-center">
+                                    <Link 
+                                        href="/" 
+                                        className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-red-600 dark:text-gray-400 dark:hover:text-white"
+                                    >
+                                        Home
+                                    </Link>
+                                </li>
+                                <li>
+                                    <div className="flex items-center">
+                                        <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                        <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">
+                                            {getDisplayTitle()}
+                                        </span>
+                                    </div>
+                                </li>
+                            </ol>
+                        </nav>
 
-    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {getPageTitle()}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-                {getPageSubtitle()}
-            </p>
-        </div>
-    </div>
-</div>
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div>
+                                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                                    {getDisplayTitle()}
+                                </h1>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                    {getDisplaySubtitle()}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Featured Articles Banner */}
                     {featuredArticles.length > 0 && viewMode === 'grid' && (
                         <div className="mb-8">
-
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 {featuredArticles.map((article, index) => (
                                     <FeaturedArticleCard 
@@ -339,16 +416,16 @@ const FeaturedArticleCard = ({
     );
 };
 
-// Regular Article Card Component
+// Regular Article Card Component - FIXED: Changed getImageUrl to getArticleImageUrl
 const ArticleCard = ({ 
     article, 
     viewMode, 
     getArticleTitle, 
     getArticleSummary, 
-    getArticleImageUrl, 
+    getArticleImageUrl, // This prop is correctly named
     calculateReadTime
 }) => {
-    const imageUrl = getArticleImageUrl(article);
+    const imageUrl = getArticleImageUrl(article); // Changed from getImageUrl to getArticleImageUrl
     
     if (viewMode === 'list') {
         return (
@@ -455,9 +532,8 @@ const ArticleCard = ({
                                 </span>
                             </div>
                             <div className="text-sm">
-                                    <div className="text-xs text-gray-500">by</div>
+                                <div className="text-xs text-gray-500">by</div>
                                 <div className="font-medium">{article.author || 'Anonymous'}</div>
-                            
                             </div>
                         </div>
                         <div className="text-xs text-gray-500">

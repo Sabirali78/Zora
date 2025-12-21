@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usePage, Link } from '@inertiajs/react';
+import { usePage, Link, Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { 
   ArrowLeft, 
@@ -21,69 +21,12 @@ import {
 } from 'lucide-react';
 
 export default function ArticleShow() {
-  const { article, darkMode, currentLanguage: urlLanguage, relatedArticles = [] } = usePage().props;
-  const currentLanguage = urlLanguage || 'en';
+  const { article, darkMode, relatedArticles = [] } = usePage().props;
   const [copied, setCopied] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
 
-  // Translations
-  const translations = {
-    en: {
-      by: 'By',
-      readTime: 'min read',
-      views: 'views',
-      share: 'Share',
-      copyLink: 'Copy Link',
-      linkCopied: 'Link Copied!',
-      backToArticles: 'Back to Articles',
-      relatedArticles: 'Related Articles',
-      publishedOn: 'Published on',
-      category: 'Category',
-      tags: 'Tags',
-      tableOfContents: 'Table of Contents',
-      imageGallery: 'Image Gallery'
-    },
-    ur: {
-      by: 'از',
-      readTime: 'منٹ پڑھنے',
-      views: 'ملاحظات',
-      share: 'شیئر کریں',
-      copyLink: 'لنک کاپی کریں',
-      linkCopied: 'لنک کاپی ہوگیا!',
-      backToArticles: 'مقالات پر واپس جائیں',
-      relatedArticles: 'متعلقہ مضامین',
-      publishedOn: 'شائع کردہ',
-      category: 'زمرہ',
-      tags: 'ٹیگز',
-      tableOfContents: 'فہرست',
-      imageGallery: 'تصویر گیلری'
-    }
-  };
-
-  const t = translations[currentLanguage === 'ur' ? 'ur' : 'en'];
-
-  // Calculate read time
-  const calculateReadTime = () => {
-    const content = getArticleContent('content') || '';
-    const wordsPerMinute = 200;
-    const wordCount = content.split(/\s+/).length;
-    return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
-  };
-
-  // Get article content
-  const getArticleContent = (field) => {
-    if (currentLanguage === 'ur') {
-      return article[`${field}_urdu`] || article[field];
-    }
-    return article[field];
-  };
-
-  const getArticleTitle = () => getArticleContent('title');
-  const getArticleContentText = () => getArticleContent('content');
-  const getArticleSummary = () => getArticleContent('summary');
-
-  // Get main image URL
+   // Get main image URL
   const getArticleImageUrl = (article) => {
     if (!article) return null;
     if (article.image_url) return article.image_url;
@@ -94,6 +37,28 @@ export default function ArticleShow() {
     }
     return null;
   };
+  
+  // Get article title
+  const getArticleTitle = () => article.title;
+  
+  // SEO Meta Details
+  const pageTitle = `${getArticleTitle()} – The WriteLine`;
+  const pageDescription = article.summary || `Read "${getArticleTitle()}" on The WriteLine.`;
+  const pageImage = getArticleImageUrl(article);
+
+  // Calculate read time
+  const calculateReadTime = () => {
+    const content = article.content || '';
+    const wordsPerMinute = 200;
+    const wordCount = content.split(/\s+/).length;
+    return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
+  };
+
+  // Get article content
+  const getArticleContentText = () => article.content;
+  const getArticleSummary = () => article.summary;
+
+ 
 
   // Get additional images (excluding the main/first one)
   const getAdditionalImages = () => {
@@ -235,7 +200,7 @@ export default function ArticleShow() {
         <div key="remaining-images" className="mt-10">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
             <ImageIcon className="h-5 w-5 mr-2" />
-            {t.imageGallery}
+            Image Gallery
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {additionalImages.slice(imgIndex).map((image, index) => (
@@ -264,7 +229,7 @@ export default function ArticleShow() {
   // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(currentLanguage === 'ur' ? 'ur-PK' : 'en-US', {
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -276,7 +241,34 @@ export default function ArticleShow() {
   const hasAdditionalImages = getAdditionalImages().length > 0;
 
   return (
-    <AppLayout darkMode={darkMode} currentLanguage={currentLanguage}>
+    <AppLayout darkMode={darkMode}>
+      {/* SEO Meta Tags */}
+      <Head>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={typeof window !== 'undefined' ? window.location.href : ''} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        {pageImage && <meta property="og:image" content={pageImage} />}
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        {pageImage && <meta name="twitter:image" content={pageImage} />}
+        
+        {/* Additional Meta Tags */}
+        <meta name="article:published_time" content={article.created_at} />
+        <meta name="article:author" content={article.author} />
+        {article.category && <meta name="article:section" content={article.category} />}
+        {article.tags && article.tags.split(',').map((tag, index) => (
+          <meta key={index} name="article:tag" content={tag.trim()} />
+        ))}
+      </Head>
+
       {/* Reading Progress Bar */}
       <div className="fixed top-0 left-0 w-full h-1 bg-gray-200 dark:bg-gray-800 z-50">
         <div 
@@ -295,7 +287,7 @@ export default function ArticleShow() {
               className="flex items-center px-4 py-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg shadow-lg"
             >
               <ArrowLeft className="h-5 w-5 mr-2" />
-              <span className="font-medium">{t.backToArticles}</span>
+              <span className="font-medium">Back to Articles</span>
             </Link>
           </div>
 
@@ -306,13 +298,13 @@ export default function ArticleShow() {
               <ol className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                 <li>
                   <Link href="/" className="hover:text-red-600 dark:hover:text-red-400 transition-colors">
-                    {currentLanguage === 'ur' ? 'ہوم' : 'Home'}
+                    Home
                   </Link>
                 </li>
                 <li className="mx-2">/</li>
                 <li>
                   <Link href="/articles" className="hover:text-red-600 dark:hover:text-red-400 transition-colors">
-                    {currentLanguage === 'ur' ? 'مقالات' : 'Articles'}
+                    Articles
                   </Link>
                 </li>
                 <li className="mx-2">/</li>
@@ -331,12 +323,12 @@ export default function ArticleShow() {
               </div>
               <div className="flex items-center text-gray-600 dark:text-gray-400">
                 <Clock className="h-4 w-4 mr-1" />
-                <span className="text-sm">{calculateReadTime()} {t.readTime}</span>
+                <span className="text-sm">{calculateReadTime()} min read</span>
               </div>
               {article.views > 0 && (
                 <div className="flex items-center text-gray-600 dark:text-gray-400">
                   <Eye className="h-4 w-4 mr-1" />
-                  <span className="text-sm">{article.views} {t.views}</span>
+                  <span className="text-sm">{article.views} views</span>
                 </div>
               )}
             </div>
@@ -368,7 +360,7 @@ export default function ArticleShow() {
                 <button
                   onClick={() => shareArticle('copy')}
                   className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors relative"
-                  title={t.copyLink}
+                  title="Copy Link"
                 >
                   {copied ? (
                     <Check className="h-4 w-4 text-green-600" />
@@ -430,7 +422,7 @@ export default function ArticleShow() {
             {getArticleSummary() && (
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-5 mb-8 border-l-4 border-red-600">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                  {currentLanguage === 'ur' ? 'خلاصہ' : 'Summary'}
+                  Summary
                 </h3>
                 <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
                   {getArticleSummary()}
@@ -450,7 +442,7 @@ export default function ArticleShow() {
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-5">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center text-sm">
                       <Tag className="h-4 w-4 mr-2" />
-                      {t.tableOfContents}
+                      Table of Contents
                     </h4>
                     <nav className="space-y-1.5">
                       {tableOfContents.map((item) => (
@@ -480,7 +472,7 @@ export default function ArticleShow() {
               {article.tags && (
                 <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-700">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                    {t.tags}
+                    Tags
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {article.tags.split(',').map((tag, index) => (
@@ -501,7 +493,7 @@ export default function ArticleShow() {
           {relatedArticles.length > 0 && (
             <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-                {t.relatedArticles}
+                Related Articles
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {relatedArticles.slice(0, 3).map((related) => (
@@ -541,7 +533,7 @@ export default function ArticleShow() {
               className="inline-flex items-center px-5 py-2.5 bg-gray-900 dark:bg-gray-800 hover:bg-gray-800 dark:hover:bg-gray-700 text-white rounded-lg font-medium transition-colors text-sm"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              {t.backToArticles}
+              Back to Articles
             </Link>
           </div>
         </div>
