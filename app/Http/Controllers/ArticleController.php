@@ -254,69 +254,70 @@ public function formatArticle($article, $titleLimit = 12, $summaryLimit = 20)
         ]);
     }
 
-    public function search(Request $request)
-    {
-        $query = $request->input('q', '');
+   public function search(Request $request)
+{
+    $query = $request->input('q', '');
 
-        $articles = collect();
-        $mainArticle = null;
+    $articles = collect();
+    $mainArticle = null;
 
-        if ($query) {
-            // Search for articles where query matches slug, title, summary, content, or tags
-            $articles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
-                ->where(function($q) use ($query) {
-                    $q->where('slug', 'LIKE', '%' . $query . '%')
-                      ->orWhere('title', 'LIKE', '%' . $query . '%')
-                      ->orWhere('summary', 'LIKE', '%' . $query . '%')
-                      ->orWhere('content', 'LIKE', '%' . $query . '%')
-                      ->orWhere('tags', 'LIKE', '%' . $query . '%');
-                })
-                ->orderBy('created_at', 'desc')
-                ->get();
-                
-            $mainArticle = $articles->first();
-        }
-
-        // Related articles: 6 from same category as first search result
-        $relatedArticles = collect();
-        if ($mainArticle) {
-                $relatedArticles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
-                ->where('category', $mainArticle->category)
-                ->where('id', '!=', $mainArticle->id)
-                ->orderBy('created_at', 'desc')
-                ->take(6)
-                ->get();
-        }
-        
-        // If not enough related articles, fill with latest articles
-        if ($relatedArticles->count() < 6) {
-            $excludeIds = $mainArticle ? [$mainArticle->id] : [];
-            $excludeIds = array_merge($excludeIds, $relatedArticles->pluck('id')->toArray());
+    if ($query) {
+        // Search for articles where query matches slug, title, summary, content, or tags
+        $articles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
+            ->where(function($q) use ($query) {
+                $q->where('slug', 'LIKE', '%' . $query . '%')
+                  ->orWhere('title', 'LIKE', '%' . $query . '%')
+                  ->orWhere('summary', 'LIKE', '%' . $query . '%')
+                  ->orWhere('content', 'LIKE', '%' . $query . '%')
+                  ->orWhere('tags', 'LIKE', '%' . $query . '%');
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
             
-            $needed = 6 - $relatedArticles->count();
-            $latestFill = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
-                ->whereNotIn('id', $excludeIds)
-                ->orderBy('created_at', 'desc')
-                ->take($needed)
-                ->get();
-                
-            $relatedArticles = $relatedArticles->concat($latestFill);
-        }
-
-        $relatedArticles = $relatedArticles->map(function($related) use ($language) {
-            return $this->formatArticle($related, $language, 12, 20);
-        });
-
-        return Inertia::render('SearchResults', [
-            'query' => $query,
-            'articles' => $articles->map(function($article) {
-                return $this->formatArticle($article, 12, 20);
-            }),
-            'relatedArticles' => $relatedArticles,
-            'darkMode' => false,
-            'currentLanguage' => 'en',
-        ]);
+        $mainArticle = $articles->first();
     }
+
+    // Related articles: 6 from same category as first search result
+    $relatedArticles = collect();
+    if ($mainArticle) {
+        $relatedArticles = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
+            ->where('category', $mainArticle->category)
+            ->where('id', '!=', $mainArticle->id)
+            ->orderBy('created_at', 'desc')
+            ->take(6)
+            ->get();
+    }
+    
+    // If not enough related articles, fill with latest articles
+    if ($relatedArticles->count() < 6) {
+        $excludeIds = $mainArticle ? [$mainArticle->id] : [];
+        $excludeIds = array_merge($excludeIds, $relatedArticles->pluck('id')->toArray());
+        
+        $needed = 6 - $relatedArticles->count();
+        $latestFill = Article::with(['images' => function($q) { $q->orderBy('id', 'desc'); }])
+            ->whereNotIn('id', $excludeIds)
+            ->orderBy('created_at', 'desc')
+            ->take($needed)
+            ->get();
+            
+        $relatedArticles = $relatedArticles->concat($latestFill);
+    }
+
+    // Format related articles - removed $language parameter
+    $relatedArticles = $relatedArticles->map(function($related) {
+        return $this->formatArticle($related, 12, 20);
+    });
+
+    return Inertia::render('SearchResults', [
+        'query' => $query,
+        'articles' => $articles->map(function($article) {
+            return $this->formatArticle($article, 12, 20);
+        }),
+        'relatedArticles' => $relatedArticles,
+        'darkMode' => false,
+        'currentLanguage' => 'en',
+    ]);
+}
 
     // News page for only news articles
     public function newsPage(Request $request)

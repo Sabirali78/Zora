@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
 use App\Models\Article;
+use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,5 +30,21 @@ class AppServiceProvider extends ServiceProvider
             }
             return Article::where('slug', $value)->orWhere('id', $value)->firstOrFail();
         });
+
+        // Share authenticated user globally with Inertia
+        Inertia::share([
+            'auth' => function () {
+                $user = Auth::user();
+                return [
+                    'user' => $user ? [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role,
+                        'is_admin' => $user->role === 'admin',
+                    ] : null,
+                ];
+            },
+        ]);
     }
 }

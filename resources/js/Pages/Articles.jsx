@@ -99,6 +99,41 @@ export default function Articles() {
         sortedArticles.filter(article => !article.is_featured), 
         [sortedArticles]
     );
+    // Get page title based on URL path
+const getPageTitle = () => {
+    const currentPath = window.location.pathname;
+    
+    // If this is the /articles page
+    if (currentPath === '/articles' || currentPath === '/articles/') {
+        return 'All Insights';
+    }
+    
+    // If this is a category page
+    if (currentPath.startsWith('/category/')) {
+        return getCategoryDisplayName();
+    }
+    
+    // Default fallback
+    return getCategoryDisplayName();
+};
+
+// Get subtitle based on page type
+const getPageSubtitle = () => {
+    const currentPath = window.location.pathname;
+    
+    if (currentPath === '/articles' || currentPath === '/articles/') {
+        return 'Browse all articles, stories, and insights';
+    }
+    
+    if (currentPath.startsWith('/category/')) {
+        const count = articles?.length || 0;
+        return count === 1 
+            ? `${count} article found in this category` 
+            : `${count} articles found in this category`;
+    }
+    
+    return 'Browse articles and insights';
+};
 
     return (
         <AppLayout darkMode={darkMode}>
@@ -106,55 +141,47 @@ export default function Articles() {
                 <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
                     {/* Page Header with Breadcrumb */}
                     <div className="mb-8">
-                        <nav className="flex mb-4" aria-label="Breadcrumb">
-                            <ol className="inline-flex items-center space-x-1 md:space-x-3">
-                                <li className="inline-flex items-center">
-                                    <Link 
-                                        href="/" 
-                                        className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-red-600 dark:text-gray-400 dark:hover:text-white"
-                                    >
-                                        Home
-                                    </Link>
-                                </li>
-                                <li>
-                                    <div className="flex items-center">
-                                        <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                                        </svg>
-                                        <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">
-                                            {getCategoryDisplayName()}
-                                        </span>
-                                    </div>
-                                </li>
-                            </ol>
-                        </nav>
+    <nav className="flex mb-4" aria-label="Breadcrumb">
+        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+            <li className="inline-flex items-center">
+                <Link 
+                    href="/" 
+                    className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-red-600 dark:text-gray-400 dark:hover:text-white"
+                >
+                    Home
+                </Link>
+            </li>
+            <li>
+                <div className="flex items-center">
+                    <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">
+                        {window.location.pathname === '/articles' || window.location.pathname === '/articles/' 
+                            ? 'All Insights' 
+                            : getCategoryDisplayName()}
+                    </span>
+                </div>
+            </li>
+        </ol>
+    </nav>
 
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                                    {getCategoryDisplayName()}
-                                </h1>
-                                <p className="text-gray-600 dark:text-gray-400">
-                                    {sortedArticles.length} {sortedArticles.length === 1 ? 'article found' : 'articles found'}
-                                    {category && (
-                                        <span className="ml-2 px-3 py-1 text-xs bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 rounded-full">
-                                            Category
-                                        </span>
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                {getPageTitle()}
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+                {getPageSubtitle()}
+            </p>
+        </div>
+    </div>
+</div>
 
                     {/* Featured Articles Banner */}
                     {featuredArticles.length > 0 && viewMode === 'grid' && (
                         <div className="mb-8">
-                            <div className="flex items-center mb-4">
-                                <TrendingUp className="h-5 w-5 text-red-600 mr-2" />
-                                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                    Trending & Featured
-                                </h2>
-                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 {featuredArticles.map((article, index) => (
                                     <FeaturedArticleCard 

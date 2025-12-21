@@ -9,7 +9,7 @@ export default function ModeratorNavbar({ moderatorName, moderator }) {
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link href={route('moderator.dashboard')} className="text-lg font-bold mr-4 text-gray-900 dark:text-white">Moderator</Link>
+            <Link href={route('home')} className="text-lg font-bold mr-4 text-gray-900 dark:text-white">Main Page</Link>
             <nav className="hidden sm:flex space-x-3">
               <Link href={route('moderator.dashboard')} className="text-sm hover:underline text-gray-700 dark:text-gray-200">Overview</Link>
               <Link href={route('moderator.articles')} className="text-sm hover:underline text-gray-700 dark:text-gray-200">Articles</Link>

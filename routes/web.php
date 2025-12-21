@@ -47,6 +47,10 @@ Route::prefix('admin')->middleware('auth')->group(function () {
     Route::get('/moderators', [AdminController::class, 'moderators'])->name('admin.moderators');
     Route::post('/moderators/{id}/verify', [AdminController::class, 'verifyModerator'])->name('admin.moderators.verify');
     Route::get('/moderators/{id}/logs', [AdminController::class, 'moderatorLogs'])->name('admin.moderators.logs');
+    // Inside the /admin prefix group
+Route::get('/moderators/create', [AdminController::class, 'createModerator'])->name('admin.moderators.create');
+Route::post('/moderators', [AdminController::class, 'storeModerator'])->name('admin.moderators.store');
+
     Route::get('/articles/create', [AdminController::class, 'createArticle'])->name('admin.articles.create');
     Route::post('/articles', [AdminController::class, 'storeArticle'])->name('admin.articles.store');
     Route::delete('/articles/{id}', [AdminController::class, 'deleteArticle'])->name('admin.articles.delete');

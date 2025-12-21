@@ -15,6 +15,37 @@ use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
+public function createModerator()
+{
+    return inertia('Admin/CreateModerator', [
+        'adminName' => auth()->user()->name,
+    ]);
+}
+
+// Store new moderator
+public function storeModerator(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required|string|min:6|confirmed', // Add confirmed rule
+    ], [
+        'password.confirmed' => 'Password confirmation does not match.',
+    ]);
+
+    User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        'role' => 'moderator',
+        'email_verified_at' => now(), // Auto-verify admin-created accounts
+    ]);
+
+    return redirect()->route('admin.moderators')
+                     ->with('success', 'Moderator created successfully.');
+}
+
+
    private function getCategories()
 {
     return [

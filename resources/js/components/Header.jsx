@@ -1,8 +1,7 @@
 import React, { useState, useContext, useEffect, useMemo } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { Sun, Moon, Menu, X, ChevronDown, TrendingUp, Search, Globe, User, LogIn, LogOut, Shield } from 'lucide-react';
+import { Sun, Moon, Menu, X, ChevronDown, Search, User, LogIn, LogOut, Shield } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
-// ...existing code...
 import { router } from '@inertiajs/react';
 
 export default function Header({ auth }) {
@@ -11,53 +10,32 @@ export default function Header({ auth }) {
   auth.user = auth.user || null;
   
   // State management
-  const [showTrendingBar, setShowTrendingBar] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [mobileTrendingOpen, setMobileTrendingOpen] = useState(false);
   const [search, setSearch] = useState('');
 
   // Context hooks
   const { darkMode, toggleTheme } = useContext(ThemeContext);
-  // Use Inertia session language
-  const { currentLanguage = 'en' } = usePage().props;
-  const isRTL = currentLanguage === 'ur';
-  // Translation labels (minimal, for demo)
-  const translations = {
-    en: {
-      home: 'Home', news: 'News', africa: 'Africa', asia: 'Asia', america: 'America', europe: 'Europe', middleEast: 'Middle East', pakistan: 'Pakistan', politics: 'Politics', sports: 'Sports', tech: 'Technology', health: 'Health', business: 'Business', science: 'Science', entertainment: 'Entertainment', environment: 'Environment', education: 'Education', lifestyle: 'Lifestyle', artsCulture: 'Arts & Culture', weather: 'Weather', food: 'Food', travel: 'Travel', fashion: 'Fashion', trending: 'Trending', standard: 'Standard', breaking: 'Breaking', exclusive: 'Exclusive', investigation: 'Investigation', analysis: 'Analysis', feature: 'Feature', interview: 'Interview', opinion: 'Opinion', editorial: 'Editorial', factCheck: 'Fact Check', live: 'Live', obituary: 'Obituary', review: 'Review', extra: 'More', account: 'Account', logout: 'Logout', login: 'Login', multiLanguage: 'Multi-Language'
-    },
-    ur: {
-      home: 'ہوم', news: 'خبریں', africa: 'افریقہ', asia: 'ایشیا', america: 'امریکہ', europe: 'یورپ', middleEast: 'مشرق وسطیٰ', pakistan: 'پاکستان', politics: 'سیاست', sports: 'کھیل', tech: 'ٹیکنالوجی', health: 'صحت', business: 'کاروبار', science: 'سائنس', entertainment: 'تفریح', environment: 'ماحولیات', education: 'تعلیم', lifestyle: 'طرز زندگی', artsCulture: 'آرٹس و ثقافت', weather: 'موسم', food: 'کھانا', travel: 'سفر', fashion: 'فیشن', trending: 'رجحانات', standard: 'معیاری', breaking: 'اہم', exclusive: 'خصوصی', investigation: 'تحقیقات', analysis: 'تجزیہ', feature: 'فیچر', interview: 'انٹرویو', opinion: 'رائے', editorial: 'اداریہ', factCheck: 'حقائق کی جانچ', live: 'لائیو', obituary: 'تعزیتی', review: 'جائزہ', extra: 'مزید', account: 'اکاؤنٹ', logout: 'لاگ آؤٹ', login: 'لاگ ان', multiLanguage: 'کثیر لسانی'
-    }
-  };
-  const t = (key) => translations[currentLanguage]?.[key] || key;
 
-// Navigation and trending links generated directly for live translation
-const navLinks = useMemo(() => [
-  { path: '/', label: t('home') },
-  { path: '/category/news', label: t('news') },
-  { path: '/category/mystery-fiction', label: t('fiction') }, // Changed from 'Fiction' to 'mystery-fiction'
-  { path: '/category/technology', label: t('tech') },
-  { path: '/category/stories', label: t('stories') },
-  { path: '/category/opinion', label: t('opinion') }, // lowercase
-  { path: '/category/analysis', label: t('analysis') }, // lowercase
-  { path: '/category/miscellaneous', label: t('miscellaneous') }, // Changed from 'Miscellaneous' to 'misc'
-], [t]);
+  // Navigation links
+  const navLinks = useMemo(() => [
+    { path: '/', label: 'Home' },
+  { path: '/articles', label: 'All Insights' }, 
+    { path: '/category/mystery-fiction', label: 'Fiction' },
+    { path: '/category/technology', label: 'Technology' },
+    { path: '/category/stories', label: 'Stories' },
+    { path: '/category/opinion', label: 'Opinion' },
+    { path: '/category/analysis', label: 'Analysis' },
+    { path: '/category/miscellaneous', label: 'Miscellaneous' },
+  ], []);
 
-
+  
   // Effect hooks
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    setMobileMenuOpen(false);
-    setMobileSearchOpen(false);
   }, []);
 
   useEffect(() => {
@@ -73,23 +51,11 @@ const navLinks = useMemo(() => [
   // Handler functions
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
-    if (mobileSearchOpen) setMobileSearchOpen(false);
-  };
-
-  const toggleMobileSearch = () => {
-    setMobileSearchOpen(!mobileSearchOpen);
-    if (mobileMenuOpen) setMobileMenuOpen(false);
-  };
-
-  const toggleMobileTrending = () => {
-    setMobileTrendingOpen(!mobileTrendingOpen);
   };
 
   const toggleUserDropdown = () => {
     setUserDropdownOpen(!userDropdownOpen);
   };
-
-  // language feature removed; no-op
 
   const isActiveLink = (url) => {
     const currentPath = window.location.pathname;
@@ -102,9 +68,6 @@ const navLinks = useMemo(() => [
     setUserDropdownOpen(false);
   };
 
-  // components/Header.jsx
-  // language switching removed; server now forces English
-
   return (
     <header 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -116,25 +79,22 @@ const navLinks = useMemo(() => [
             ? 'bg-gray-900 shadow-lg'
             : 'bg-white shadow-lg'
       }`}
-      dir={isRTL ? 'rtl' : 'ltr'}
     >
       {/* Main Navigation */}
       <nav className={`${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-b`}>
         <div className="container mx-auto px-4">
-          <div className={`flex justify-between items-center h-16 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className="flex justify-between items-center h-16">
             
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-2 group">
               <div className="w-8 h-8 bg-gradient-to-r from-red-600 to-red-700 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">Z</span>
+                <span className="text-white font-bold text-sm">W</span>
               </div>
-              <span className="text-lg font-bold  sm:block">
-                {currentLanguage === 'ur' ? 'زورا' : 'Zora'}
-              </span>
+              <span className="text-lg font-bold sm:block">The WriteLine</span>
             </Link>
 
             {/* Desktop Navigation */}
-            <div className={`hidden lg:flex items-center space-x-1 ${isRTL ? 'space-x-reverse' : ''}`}>
+            <div className="hidden lg:flex items-center space-x-1">
               {navLinks.slice(0, 6).map((link) => (
                 link.dropdown ? (
                   <div key={link.path} className="relative group">
@@ -149,10 +109,10 @@ const navLinks = useMemo(() => [
                       }`}
                     >
                       {link.label}
-                      <ChevronDown className={`ml-1 h-4 w-4 ${isRTL ? 'transform rotate-180' : ''}`} />
+                      <ChevronDown className="ml-1 h-4 w-4" />
                     </Link>
                     <div className={`
-                      absolute ${isRTL ? 'right-0' : 'left-0'} mt-2 w-48 rounded-md shadow-lg py-1 z-50
+                      absolute left-0 mt-2 w-48 rounded-md shadow-lg py-1 z-50
                       ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}
                       opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200
                     `}>
@@ -197,11 +157,11 @@ const navLinks = useMemo(() => [
                       : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
-                  {t('extra')}
-                  <ChevronDown className={`ml-1 h-4 w-4 ${isRTL ? 'transform rotate-180' : ''}`} />
+                  More
+                  <ChevronDown className="ml-1 h-4 w-4" />
                 </button>
                 <div className={`
-                  absolute ${isRTL ? 'right-0' : 'left-0'} mt-2 w-48 rounded-md shadow-lg py-1 z-50
+                  absolute left-0 mt-2 w-48 rounded-md shadow-lg py-1 z-50
                   ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}
                   opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200
                 `}>
@@ -223,7 +183,7 @@ const navLinks = useMemo(() => [
             </div>
 
             {/* Right Side Actions */}
-            <div className={`flex items-center space-x-2 sm:space-x-3 ${isRTL ? 'space-x-reverse' : ''}`}>
+            <div className="flex items-center space-x-2 sm:space-x-3">
               {/* Search Bar */}
               <form
                 action="/search"
@@ -236,21 +196,18 @@ const navLinks = useMemo(() => [
                   name="q"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder={'Search...'}
+                  placeholder="Search..."
                   className={`border rounded px-2 py-1 text-sm ${darkMode ? 'bg-gray-800 text-white border-gray-700' : 'bg-white text-black border-gray-300'}`}
                   style={{ width: 120 }}
                 />
                 <button
                   type="submit"
                   className={`ml-2 px-2 py-1 rounded ${darkMode ? 'bg-red-700 text-white' : 'bg-red-600 text-white'}`}
-                  title={'Search'}
+                  title="Search"
                 >
                   <Search className="h-4 w-4" />
                 </button>
               </form>
-
-              {/* Language Switcher */}
-              {/* language selector removed - English only */}
 
               {/* Theme Toggle */}
               <button
@@ -292,18 +249,29 @@ const navLinks = useMemo(() => [
                         }`}
                       >
                         <User className="h-5 w-5" />
-                        <span className="hidden sm:inline">{t('account')}</span>
+                        <span className="hidden sm:inline">Account</span>
                         <ChevronDown className={`h-4 w-4 ${userDropdownOpen ? 'transform rotate-180' : ''}`} />
                       </button>
                       {userDropdownOpen && (
-                        <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 rounded-md shadow-lg py-1 z-50 ${
+                        <div className={`absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 z-50 ${
                           darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
                         }`}>
                           <div className={`px-4 py-2 text-sm border-b ${
                             darkMode ? 'border-gray-700 text-gray-300' : 'border-gray-200 text-gray-700'
                           }`}>
-                            {auth.user.name || t('welcome')}
+                            {auth.user.name || 'Welcome'}
                           </div>
+                          <Link
+                            href={auth.user.role === 'admin' ? route('admin.dashboard') : route('moderator.dashboard')}
+                            className={`flex items-center w-full px-4 py-2 text-sm text-left ${
+                              darkMode
+                                ? 'text-gray-300 hover:bg-gray-700'
+                                : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            <User className="mr-2 h-4 w-4" />
+                            {auth.user.role === 'admin' ? 'Admin Dashboard' : 'Profile'}
+                          </Link>
                           <Link
                             href={route('logout')}
                             method="post"
@@ -315,7 +283,7 @@ const navLinks = useMemo(() => [
                             }`}
                           >
                             <LogOut className="mr-2 h-4 w-4" />
-                            {t('logout')}
+                            Logout
                           </Link>
                         </div>
                       )}
@@ -332,7 +300,7 @@ const navLinks = useMemo(() => [
                   }`}
                 >
                   <LogIn className="h-5 w-5" />
-                  <span className="ml-1 hidden sm:inline">{t('login')}</span>
+                  <span className="ml-1 hidden sm:inline">Login</span>
                 </Link>
               )}
 
@@ -357,9 +325,9 @@ const navLinks = useMemo(() => [
               <div className={`flex items-center justify-between p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <Link href="/" className="flex items-center space-x-2 group" onClick={() => setMobileMenuOpen(false)}>
                   <div className="w-8 h-8 bg-gradient-to-r from-red-600 to-red-700 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">Z</span>
+                    <span className="text-white font-bold text-sm">W</span>
                   </div>
-                  <span className="text-lg font-bold">Zora</span>
+                  <span className="text-lg font-bold">The WriteLine</span>
                 </Link>
                 <button
                   onClick={toggleMobileMenu}
@@ -443,8 +411,20 @@ const navLinks = useMemo(() => [
                       ) : (
                         <>
                           <div className={`px-3 py-2 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {auth.user.name || t('welcome')}
+                            {auth.user.name || 'Welcome'}
                           </div>
+                          <Link
+                            href={auth.user.role === 'admin' ? route('admin.dashboard') : route('moderator.dashboard')}
+                            className={`flex items-center px-3 py-2 text-base ${
+                              darkMode
+                                ? 'text-gray-300 hover:text-white hover:bg-gray-700'
+                                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                            }`}
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <User className="mr-2 h-4 w-4" />
+                            {auth.user.role === 'admin' ? 'Admin Dashboard' : 'Profile'}
+                          </Link>
                           <Link
                             href={route('logout')}
                             method="post"
@@ -457,7 +437,7 @@ const navLinks = useMemo(() => [
                             onClick={() => setMobileMenuOpen(false)}
                           >
                             <LogOut className="mr-2 h-4 w-4" />
-                            {t('logout')}
+                            Logout
                           </Link>
                         </>
                       )}
@@ -474,7 +454,7 @@ const navLinks = useMemo(() => [
                         }`}
                       >
                         <LogIn className="mr-2 h-4 w-4" />
-                        {t('login')}
+                        Login
                       </Link>
                     </div>
                   )}

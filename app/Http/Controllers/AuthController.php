@@ -10,15 +10,18 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    public function showLogin()
-    {
-        return Inertia::render('auth/Login');
+  public function showLogin()
+{
+    if (Auth::check()) {
+        // Redirect to dashboard based on role
+        $user = Auth::user();
+        return $user->role === 'admin'
+            ? redirect()->route('admin.dashboard')
+            : redirect()->route('moderator.dashboard');
     }
 
-    public function showRegister()
-    {
-        return Inertia::render('auth/Register');
-    }
+    return Inertia::render('auth/Login');
+}
 
   public function login(Request $request)
 {
@@ -82,6 +85,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        return redirect()->route('home');
     }
 }
