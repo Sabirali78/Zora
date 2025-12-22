@@ -149,35 +149,137 @@ export default function Dashboard({
           </table>
         </div>
 
-        <div className={`mt-10 p-6 rounded-xl ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200 shadow-sm'}`}>
-          <h2 className="text-xl font-bold mb-4">📈 Recent Visits</h2>
+       <div className={`mt-6 sm:mt-10 p-4 sm:p-6 rounded-lg sm:rounded-xl ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200 shadow-sm'}`}>
+  <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6">📈 Recent Visits</h2>
 
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} text-left`}>
-                <th className="p-3">Article</th>
-                <th className="p-3">IP</th>
-                <th className="p-3">Browser</th>
-                <th className="p-3">Time</th>
-              </tr>
-            </thead>
+  {/* Desktop Table (hidden on mobile) */}
+  <div className="hidden md:block overflow-x-auto">
+    <table className="w-full border-collapse min-w-[600px]">
+      <thead>
+        <tr className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} text-left text-sm`}>
+          <th className="p-2 sm:p-3 font-medium">Article</th>
+          <th className="p-2 sm:p-3 font-medium">IP</th>
+          <th className="p-2 sm:p-3 font-medium">Browser</th>
+          <th className="p-2 sm:p-3 font-medium">Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {latestLogs.map((log, i) => (
+          <tr key={i} className={`${darkMode ? 'border-gray-800 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-50'} border-t transition-colors`}>
+            <td className="p-2 sm:p-3 text-sm">
+              <div className="font-medium truncate max-w-[200px]">
+                {log.article ? log.article.title : 'Deleted Article'}
+              </div>
+            </td>
+            <td className="p-2 sm:p-3 text-sm font-mono text-gray-500 dark:text-gray-400">
+              {log.ip}
+            </td>
+            <td className="p-2 sm:p-3 text-sm text-gray-600 dark:text-gray-400">
+              <div className="truncate max-w-[180px]">{log.user_agent}</div>
+            </td>
+            <td className="p-2 sm:p-3 text-sm text-gray-500 dark:text-gray-400">
+              {log.created_at}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
 
-            <tbody>
-              {latestLogs.map((log, i) => ( // Changed from recentLogs to latestLogs
-                <tr key={i} className={`${darkMode ? 'border-gray-800' : 'border-gray-200'} border-t`}>
-                  <td className="p-3">
-                    {log.article
-                      ? log.article.title
-                      : 'Deleted Article'}
-                  </td>
-                  <td className="p-3">{log.ip}</td>
-                  <td className="p-3 truncate max-w-[200px]">{log.user_agent}</td>
-                  <td className="p-3">{log.created_at}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  {/* Mobile Cards (shown on mobile) */}
+  <div className="md:hidden space-y-4">
+    {latestLogs.map((log, i) => (
+      <div 
+        key={i} 
+        className={`p-4 rounded-lg border ${darkMode ? 'border-gray-800 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}
+      >
+        <div className="space-y-3">
+          {/* Article Title */}
+          <div>
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              Article
+            </div>
+            <div className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+              {log.article ? log.article.title : 'Deleted Article'}
+            </div>
+          </div>
+
+          {/* IP Address */}
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                IP Address
+              </div>
+              <div className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                {log.ip}
+              </div>
+            </div>
+            
+            {/* Time Badge */}
+            <div className="text-right">
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                Time
+              </div>
+              <div className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                {log.created_at}
+              </div>
+            </div>
+          </div>
+
+          {/* Browser Info */}
+          <div>
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              Browser
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
+              {log.user_agent}
+            </div>
+          </div>
+
+          {/* View Details Button (Optional) */}
+          <button 
+            className={`w-full mt-2 py-2 text-sm font-medium rounded-lg transition-colors ${darkMode 
+              ? 'bg-gray-800 hover:bg-gray-700 text-gray-300' 
+              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+            onClick={() => {/* Add click handler */}}
+          >
+            View Details
+          </button>
         </div>
+      </div>
+    ))}
+  </div>
+
+  {/* Empty State */}
+  {latestLogs.length === 0 && (
+    <div className={`text-center py-8 sm:py-12 rounded-lg ${darkMode ? 'bg-gray-800/30' : 'bg-gray-50'}`}>
+      <div className="text-4xl mb-3">📭</div>
+      <h3 className={`text-lg font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+        No visits yet
+      </h3>
+      <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+        Visitor logs will appear here once people start viewing your articles.
+      </p>
+    </div>
+  )}
+
+  {/* View All Button */}
+  {latestLogs.length > 0 && (
+    <div className="mt-6 text-center">
+      <button 
+        className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${darkMode 
+          ? 'bg-gray-800 hover:bg-gray-700 text-gray-300' 
+          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+        onClick={() => {/* Add click handler */}}
+      >
+        View All Logs
+        <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  )}
+</div>
       </main>
     </div>
   );

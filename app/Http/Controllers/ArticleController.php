@@ -227,31 +227,33 @@ public function formatArticle($article, $titleLimit = 12, $summaryLimit = 20)
         ]);
     }
 
-   public function show(Article $article, Request $request)
+  public function show(Article $article, Request $request)
 {
     // Record traffic log
     TrafficLog::create([
         'article_id' => $article->id,
-        'user_id'    => auth()->id(),                  // null if guest
-        'ip'         => $request->ip(),                // visitor IP
+        'user_id'    => auth()->id(),
+        'ip'         => $request->ip(),
         'user_agent' => $request->header('User-Agent'),
         'referer'    => $request->headers->get('referer'),
     ]);
-
-    // English-only
-    $language = 'en';
 
     // Load article images
     $article->load(['images' => function($q) {
         $q->orderBy('id', 'desc');
     }]);
 
-    return Inertia::render('Article', [
+    $response = Inertia::render('Article', [
         'article' => $this->formatArticle($article),
         'darkMode' => false,
         'currentLanguage' => 'en',
-    ], [
-        'currentLanguage' => 'en',
+    ]);
+
+    // ADD CACHE CONTROL HEADERS
+    return $response->withHeaders([
+        'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma' => 'no-cache',
+        'Expires' => 'Sat, 01 Jan 2000 00:00:00 GMT',
     ]);
 }
 

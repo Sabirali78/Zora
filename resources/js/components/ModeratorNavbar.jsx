@@ -20,8 +20,9 @@ export default function ModeratorNavbar({ moderatorName = null, moderator = null
     <header className={`sticky top-0 z-50 border-b transition-colors duration-200 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo and desktop navigation */}
-          <div className="flex items-center">
+          {/* Left side: Logo and desktop navigation */}
+          <div className="flex items-center flex-1 min-w-0">
+            {/* Logo */}
             <div className="flex-shrink-0">
               <Link
                 href={route('moderator.dashboard')}
@@ -32,7 +33,7 @@ export default function ModeratorNavbar({ moderatorName = null, moderator = null
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
-                <div className="flex flex-col">
+                <div className="hidden sm:flex sm:flex-col">
                   <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                     Moderator Panel
                   </span>
@@ -43,10 +44,10 @@ export default function ModeratorNavbar({ moderatorName = null, moderator = null
               </Link>
             </div>
 
-            {/* Main Site Link */}
+            {/* Main Site Link - Hidden on mobile, shown on tablet+ */}
             <Link
               href={route('home')}
-              className={`ml-6 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${darkMode 
+              className={`hidden sm:block ml-6 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${darkMode 
                 ? 'text-gray-300 hover:bg-gray-800 hover:text-white' 
                 : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
               }`}
@@ -98,10 +99,10 @@ export default function ModeratorNavbar({ moderatorName = null, moderator = null
           </div>
 
           {/* Right side actions */}
-          <div className="flex items-center space-x-4">
-            {/* Moderator name */}
+          <div className="flex items-center justify-end flex-shrink-0 space-x-2 sm:space-x-4">
+            {/* Moderator name - Hidden on mobile */}
             {moderatorName && (
-              <div className="hidden md:flex items-center">
+              <div className="hidden sm:flex items-center">
                 <div className={`px-3 py-1.5 rounded-full text-sm font-medium ${darkMode 
                   ? 'bg-gray-800 text-gray-300' 
                   : 'bg-gray-100 text-gray-700'
@@ -141,17 +142,17 @@ export default function ModeratorNavbar({ moderatorName = null, moderator = null
               )}
             </button>
 
-            {/* Logout Button */}
+            {/* Logout Button - Smaller on mobile */}
             <Link
               href={route('logout')}
               method="post"
               as="button"
-              className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors shadow-sm ${darkMode 
+              className={`inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors shadow-sm ${darkMode 
                 ? 'bg-red-700 hover:bg-red-600 text-white' 
                 : 'bg-red-600 hover:bg-red-700 text-white'
               }`}
             >
-              <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="sm:mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
               <span className="hidden sm:inline">Logout</span>
@@ -160,7 +161,7 @@ export default function ModeratorNavbar({ moderatorName = null, moderator = null
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`md:hidden p-2 rounded-md ${darkMode 
+              className={`ml-2 sm:hidden p-2 rounded-md ${darkMode 
                 ? 'text-gray-400 hover:bg-gray-800 hover:text-white' 
                 : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
               }`}
@@ -183,7 +184,7 @@ export default function ModeratorNavbar({ moderatorName = null, moderator = null
         {mobileMenuOpen && (
           <div className={`md:hidden border-t ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
             <div className="px-2 pt-2 pb-3 space-y-1">
-              {/* Main Site Link in Mobile */}
+              {/* Main Site Link in Mobile - Now visible */}
               <Link
                 href={route('home')}
                 className={`flex items-center rounded-lg px-3 py-3 text-base font-medium transition-colors ${darkMode 
